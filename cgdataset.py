@@ -8,7 +8,6 @@ import shapely
 import shapely.plotting
 import triangle
 from pydrake.all import HPolyhedron, VPolytope
-import matplotlib.pyplot as plt
 
 def vert_list_to_numpy_array(vert_list):
 	return np.array([[obj['x'], obj['y']] for obj in vert_list])
@@ -49,8 +48,6 @@ class World():
 				shell=self.outer_boundary.exterior.coords[:-1],
 				holes=[poly.exterior.coords[:-1] for poly in self.obstacle_polygons]
 			)
-			shapely.plotting.plot_polygon(self.cfree_polygon)
-			plt.show()
 
 	def _parse_obstacle(self, vert_list):
 		# vert_list is a list of dictionaries, with keys 'x' and 'y'.
@@ -76,9 +73,29 @@ class World():
 			tri_points = delaunay_verts[tri_idx].T # Drake wants the points to be columns
 			self.obstacle_triangles.append(HPolyhedron(VPolytope(tri_points)))
 
+	def plot_cfree(self, ax):
+		shapely.plotting.plot_polygon(self.cfree_polygon, ax=ax, add_points=False)
+
+	def plot_boundary(self, ax):
+		shapely.plotting.plot_polygon(self.outer_boundary, ax=ax, facecolor=(1,1,1,0), edgecolor="red", add_points=False)
+
+	def plot_obstacles(self, ax):
+		for poly in self.obstacle_polygons:
+			shapely.plotting.plot_polygon(poly, ax=ax, facecolor="red", edgecolor="red", add_points=False)
+
 	def sample_cfree(self, n):
 		# Returns a uniform sample of n points in C-Free.
 		pass # TODO
 
 if __name__ == "__main__":
-	world = World("./data/examples_01/cheese2009.instance.json")
+	world = World("./data/examples_01/cheese1028.instance.json")
+
+	import matplotlib.pyplot as plt
+	fig, ax = plt.subplots()
+	world.plot_cfree(ax)
+	plt.show()
+
+	fig, ax = plt.subplots()
+	world.plot_boundary(ax)
+	world.plot_obstacles(ax)
+	plt.show()
