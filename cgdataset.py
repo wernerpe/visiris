@@ -5,8 +5,10 @@
 import numpy as np
 import json
 import shapely
+import shapely.plotting
 import triangle
 from pydrake.all import HPolyhedron, VPolytope
+import matplotlib.pyplot as plt
 
 def vert_list_to_numpy_array(vert_list):
 	return np.array([[obj['x'], obj['y']] for obj in vert_list])
@@ -36,12 +38,19 @@ class World():
 			self.name = data["name"]
 			self.outer_boundary = shapely.Polygon(vert_list_to_numpy_array(data["outer_boundary"]))
 			self.bbox = self.outer_boundary.bounds # minx, miny, maxx, maxy
+			
 			self.obstacle_segments = []
 			self.obstacle_polygons = []
 			self.obstacle_triangles = []
 			for vert_list in data["holes"]:
 				self._parse_obstacle(vert_list)
-			self.cfree_polygon = self._compute_cfree_polygon()
+			
+			self.cfree_polygon = shapely.Polygon(
+				shell=self.outer_boundary.exterior.coords[:-1],
+				holes=[poly.exterior.coords[:-1] for poly in self.obstacle_polygons]
+			)
+			shapely.plotting.plot_polygon(self.cfree_polygon)
+			plt.show()
 
 	def _parse_obstacle(self, vert_list):
 		# vert_list is a list of dictionaries, with keys 'x' and 'y'.
@@ -58,7 +67,6 @@ class World():
 		poly = shapely.Polygon(verts)
 		self.obstacle_polygons.append(poly)
 
-		# TODO: Populate self.obstacle_triangles
 		tris = triangle.triangulate(shapely_polygon_to_triangle_package_dict(poly), "p")
 		# import matplotlib.pyplot as plt
 		# triangle.plot(plt.axes(), **tris)
@@ -68,14 +76,9 @@ class World():
 			tri_points = delaunay_verts[tri_idx].T # Drake wants the points to be columns
 			self.obstacle_triangles.append(HPolyhedron(VPolytope(tri_points)))
 
-	def _compute_cfree_polygon(self):
-		# Combines the outer boundary and holes into a single Shapely polygon
-		pass # TODO
-
 	def sample_cfree(self, n):
 		# Returns a uniform sample of n points in C-Free.
 		pass # TODO
 
 if __name__ == "__main__":
-	# world = World("./data/examples_01/maze_001.instance.json")
-	world = World("./data/examples_01/cheese102.instance.json")
+	world = World("./data/examples_01/cheese2009.instance.json")
