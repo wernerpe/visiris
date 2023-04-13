@@ -36,7 +36,7 @@ class World():
 			data = json.load(file)
 			self.name = data["name"]
 			self.outer_boundary = shapely.Polygon(vert_list_to_numpy_array(data["outer_boundary"]))
-			self.bbox = self.outer_boundary.bounds # minx, miny, maxx, maxy
+			self.bounds = self.outer_boundary.bounds # minx, miny, maxx, maxy
 			
 			self.obstacle_segments = []
 			self.obstacle_polygons = []
@@ -84,8 +84,12 @@ class World():
 			shapely.plotting.plot_polygon(poly, ax=ax, facecolor="red", edgecolor="red", add_points=False)
 
 	def sample_cfree(self, n):
-		# Returns a uniform sample of n points in C-Free.
-		pass # TODO
+		points = []
+		while len(points) < n:
+			point = np.random.uniform(low=self.bounds[0:2], high=self.bounds[2:4])
+			if self.cfree_polygon.contains(shapely.Point(point)):
+				points.append(point)
+		return np.array(points)
 
 if __name__ == "__main__":
 	world = World("./data/examples_01/cheese1028.instance.json")
@@ -93,9 +97,6 @@ if __name__ == "__main__":
 	import matplotlib.pyplot as plt
 	fig, ax = plt.subplots()
 	world.plot_cfree(ax)
-	plt.show()
-
-	fig, ax = plt.subplots()
-	world.plot_boundary(ax)
-	world.plot_obstacles(ax)
+	points = world.sample_cfree(100)
+	ax.scatter(points[:,0], points[:,1], color="black")
 	plt.show()
