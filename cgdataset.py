@@ -91,12 +91,37 @@ class World():
 				points.append(point)
 		return np.array(points)
 
+	def visible(self, p, q):
+		# Returns True if p and q can see each other
+		# If either p or q are in an obstacle, returns False
+		if not self.cfree_polygon.contains(shapely.Point(p)):
+			return False
+		if not self.cfree_polygon.contains(shapely.Point(q)):
+			return False
+		l = shapely.LineString([p, q])
+		return not shapely.crosses(self.cfree_polygon, l)
+
+	def cfree_area(self):
+		return self.cfree_polygon.area
+
 if __name__ == "__main__":
-	world = World("./data/examples_01/cheese1028.instance.json")
+	world = World("./data/examples_01/srpg_iso_aligned_mc0000172.instance.json")
 
 	import matplotlib.pyplot as plt
 	fig, ax = plt.subplots()
 	world.plot_cfree(ax)
-	points = world.sample_cfree(100)
-	ax.scatter(points[:,0], points[:,1], color="black")
+	plt.draw()
+	plt.pause(0.001)
+
+	points = []
+	for i in range(100):
+		point = world.sample_cfree(1)[0]
+		ax.scatter([point[0]], [point[1]], color="black")
+		for other in points:
+			if world.visible(point, other):
+				ax.plot([point[0], other[0]], [point[1], other[1]], color="black", linewidth=0.25)
+		points.append(point)
+		plt.draw()
+		plt.pause(0.001)
+
 	plt.show()
