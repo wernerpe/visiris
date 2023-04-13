@@ -5,10 +5,20 @@
 import numpy as np
 import json
 import shapely
-from pydrake.all import HPolyhedron
+import triangle
+from pydrake.all import HPolyhedron, VPolytope
 
 def vert_list_to_numpy_array(vert_list):
 	return np.array([[obj['x'], obj['y']] for obj in vert_list])
+
+def shapely_polygon_to_triangle_package_dict(polygon):
+	# Converts a shapely polygon (with no holes) into a dictionary that
+	# can be used with the package triangle
+	d = dict()
+	n = len(polygon.exterior.coords) - 1
+	d["vertices"] = polygon.exterior.coords[:-1]
+	d["segments"] = np.vstack((np.arange(n), np.roll(np.arange(n), -1))).T
+	return d
 
 class World():
 	# Encapsulates all information about a world:
@@ -25,7 +35,7 @@ class World():
 			data = json.load(file)
 			self.name = data["name"]
 			self.outer_boundary = shapely.Polygon(vert_list_to_numpy_array(data["outer_boundary"]))
-			self.bbox = self.outer_boundary.bounds
+			self.bbox = self.outer_boundary.bounds # minx, miny, maxx, maxy
 			self.obstacle_segments = []
 			self.obstacle_polygons = []
 			self.obstacle_triangles = []
@@ -41,14 +51,22 @@ class World():
 		#  - self.obstacle_triangles
 
 		verts = vert_list_to_numpy_array(vert_list)
-		
 		for i in range(0, len(verts)):
 			j = (i+1) % len(verts)
 			self.obstacle_segments.append(verts[[i,j]])
 		
-		self.obstacle_polygons.append(shapely.Polygon(verts))
+		poly = shapely.Polygon(verts)
+		self.obstacle_polygons.append(poly)
 
 		# TODO: Populate self.obstacle_triangles
+		tris = triangle.triangulate(shapely_polygon_to_triangle_package_dict(poly), "p")
+		# import matplotlib.pyplot as plt
+		# triangle.plot(plt.axes(), **tris)
+		# plt.show()
+		delaunay_verts = np.array(tris["vertices"].tolist())
+		for tri_idx in tris["triangles"].tolist():
+			tri_points = delaunay_verts[tri_idx].T # Drake wants the points to be columns
+			self.obstacle_triangles.append(HPolyhedron(VPolytope(tri_points)))
 
 	def _compute_cfree_polygon(self):
 		# Combines the outer boundary and holes into a single Shapely polygon
@@ -59,4 +77,5 @@ class World():
 		pass # TODO
 
 if __name__ == "__main__":
-	world = World("./data/examples_01/maze_001.instance.json")
+	# world = World("./data/examples_01/maze_001.instance.json")
+	world = World("./data/examples_01/cheese102.instance.json")
