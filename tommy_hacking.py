@@ -2,10 +2,10 @@ import numpy as np
 from tqdm import tqdm
 
 from cgdataset import World
-from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer
+from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW
 
 world = World("./data/examples_01/srpg_iso_aligned_mc0000172.instance.json")
-n = 200
+n = 100
 
 np.random.seed(0)
 
@@ -34,6 +34,15 @@ for i in tqdm(range(n)):
 # print(mat)
 
 m, verts = solve_max_independent_set_integer(adj_mat)
+print("Integer Solution")
+print(m)
+print(verts)
+chosen_verts = points[np.nonzero(verts)]
+ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")
+plt.draw()
+plt.waitforbuttonpress()
+ax.scatter(points[:,0], points[:,1], color="black")
+m, verts = solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=10000)
 print(m)
 print(verts)
 chosen_verts = points[np.nonzero(verts)]

@@ -44,7 +44,7 @@ def solve_max_independent_set_integer(adj_mat):
 	result = Solve(prog, solver_options=solver_options)
 	return -result.get_optimal_cost(), result.GetSolution(v)
 
-def solve_max_independent_set_binary_quad_GW(adj_mat):
+def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100):
 	n = adj_mat.shape[0]
 	prog = MathematicalProgram()
 	V = prog.NewSymmetricContinuousVariables(n+1)
@@ -74,7 +74,7 @@ def solve_max_independent_set_binary_quad_GW(adj_mat):
 	vals_gw = []
 	xsols = []
 
-	for idx in range(10):
+	for idx in range(n_rounds):
 		#random hyperplane -> projecting a spherical gaussian to unit sphere
 		a = np.random.randn(r)
 		a /= np.linalg.norm(a)
@@ -120,8 +120,7 @@ def solve_max_independent_set_binary_quad_GW(adj_mat):
 	idxmax = np.argmax(vals_gw)
 	xsol = xsols[idxmax]
 
-
-	return vals_gw[idxmax], xsol
+	return vals_gw[idxmax], xsol[1:] == 1
 
 if __name__ == "__main__":
 	graph = np.array([
