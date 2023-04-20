@@ -1,6 +1,9 @@
 import numpy as np
 from tqdm import tqdm
 from pydrake.all import MathematicalProgram, Solve, SolverOptions, CommonSolverOption
+import pydrake
+import networkx as nx
+from time import strftime, gmtime
 
 def solve_lovasz_sdp(adj_mat):
 	print("Setting Up Mathematical Program")
@@ -52,7 +55,7 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 	Q[0, 1:] =1
 	Q[1:, 0] =1
 	
-	prog.AddLinearCost(-0.5*(n+0.5*np.trace(np.matmul(Q,V))))
+	prog.AddLinearCost(-0.5*(n+0.5*np.sum(np.multiply(Q,V))))
 	prog.AddPositiveSemidefiniteConstraint(V)
 	for i in range(0,n):
 		for j in range(i,n):
@@ -129,6 +132,115 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 	print('Relaxation: ', 0.5*(n+0.5*np.trace(np.matmul(Q, result.GetSolution(V)))), ' Rounding: ', vals_gw[idxmax])
 	return vals_gw[idxmax], xsol[1:] == xsol[0]
 
+class DoubleGreedy:
+	def __init__(self,
+	      		 alpha = 0.05,
+                 eps = 0.05,
+		 		 max_samples = 500,
+		 		 sample_node_handle = None,
+				 los_handle= None,
+				 verbose = False
+				 ):
+		
+		self.verbose = verbose
+		self.alpha = alpha
+		self.eps = eps
+		self.max_samples = max_samples
+		self.M = int(np.log(alpha)/np.log(1-eps))
+
+		self.sample_node = sample_node_handle
+		self.is_los = los_handle
+		self.sample_set = {}
+		self.hidden_set = []
+		self.points = []
+		if self.verbose: 
+			print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Point insertion attempts M:', str(self.M))
+			print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] {} probability that unseen region is less than {} "%" of Cfree '.format(1-self.alpha, 100*eps))
+
+	def construct_independent_set(self,):
+		it = 0
+		while it < self.M:
+			p = self.sample_node()
+			self.points.append(p)
+			visible_points = []
+			add_to_sample_set = False
+			for idx_point in self.hidden_set:
+				hidden_point = self.points[idx_point]
+				if self.is_los(p, hidden_point):
+					add_to_sample_set = True
+					visible_points.append(hidden_point)
+			if add_to_sample_set:
+				self.sample_set[str(p)] = [p, visible_points]
+			else:
+				if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +"[DoubleGreedy] New hidden point placed N = ", str(len(self.hidden_set)), "it = ", it) 
+				self.hidden_set.append(len(self.points)-1)
+				it = 0
+				 #update visibility 
+				for s_key in self.sample_set.keys():
+					p_sample = self.sample_set[s_key][0]
+					if self.is_los(p, p_sample):
+						self.sample_set[s_key][1].append(p)
+			it+=1
+			if len(self.points)>=self.max_samples:
+				if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Point budget exceeded', len(self.points))
+				return  [self.points[ih] for ih in self.hidden_set]
+		if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Sample set size',len(self.sample_set.keys()))
+
+		return [self.points[ih] for ih in self.hidden_set]
+
+	def compute_kernel_of_hidden_point(self, point):
+		ker = []
+		for sampdat in self.sample_set.values():
+			pos = sampdat[0]
+			if len(sampdat[1])==1 and np.array_equal(sampdat[1][0], self.points[point]):
+				ker.append(pos)
+		return ker
+	
+	def get_new_set_candidates(self, point):
+		kernel_points = self.compute_kernel_of_hidden_point(point)
+		kernel_points += [self.points[point]]
+		graph = nx.Graph()
+		if len(kernel_points)>1:
+			for i1, v1 in enumerate(kernel_points):
+				for i2, v2 in enumerate(kernel_points):
+					if i1!=i2 and self.is_los(v1, v2):
+						graph.add_edge(i1,i2)
+			if len(graph.edges):
+				new_cands = nx.maximal_independent_set(graph)
+			else:
+				raise ValueError("no edges detected, must be error")
+			return [kernel_points[c] for c in new_cands]
+		else:
+			return [self.points[point]]
+
+	def refine_independent_set_greedy(self):
+		continue_splitting = True
+		while continue_splitting:
+			candidate_splits = [self.get_new_set_candidates(p) for p in self.hidden_set]
+			best_split = max(candidate_splits, key = len)
+			best_split_idx = candidate_splits.index(best_split)
+			if len(best_split)>1:
+				if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Hidden point found to split into', len(best_split))
+				hidden_point_old = self.hidden_set[best_split_idx]
+				p_hidden_old  = self.points[hidden_point_old]
+				for s_key in self.sample_set.keys():
+					vis_points = self.sample_set[s_key][1] 
+					eq_list = [np.array_equal(v, p_hidden_old) for v in vis_points]
+					idx_eq = eq_list.index(True) if True in eq_list else None
+					if idx_eq is not None:
+						vis_points.pop(idx_eq)
+					p_sample = self.sample_set[s_key][0]
+					for idnr, p_split in enumerate(best_split):
+						if self.is_los(p_split, p_sample):
+							vis_points.append(p_split)
+				#remove old hidden point from hidden set
+				self.hidden_set.pop(best_split_idx)
+				for c in best_split:
+					self.hidden_set.append([np.array_equal(v, c) for v in self.points].index(True))
+			else:
+				continue_splitting = False
+		return [self.points[ih] for ih in self.hidden_set]
+	
 if __name__ == "__main__":
 	graph = np.array([
 		[0, 1, 0],
