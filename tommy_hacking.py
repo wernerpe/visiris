@@ -1,11 +1,11 @@
 import numpy as np
 from tqdm import tqdm
-
+from functools import partial
 from cgdataset import World
-from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW
+from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW, DoubleGreedy
 
 world = World("./data/examples_01/srpg_iso_aligned_mc0000172.instance.json")
-n = 500
+n = 100
 
 np.random.seed(0)
 
@@ -29,23 +29,41 @@ for i in tqdm(range(n)):
 	plt.draw()
 	plt.pause(0.001)
 
-theta, mat = solve_lovasz_sdp(adj_mat)
-print("Lovasz ")
-print(theta)
+#theta, mat = solve_lovasz_sdp(adj_mat)
+#print("Lovasz ")
+#print(theta)
 #print(mat)
 
-# m, verts = solve_max_independent_set_integer(adj_mat)
-# print("Integer Solution")
-# print('Independent set sol', m)
+m, verts = solve_max_independent_set_integer(adj_mat)
+print("Integer Solution")
+print('Independent set sol', m)
 #print(verts)
-# chosen_verts = points[np.nonzero(verts)]
-# ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")
-# plt.draw()
-# plt.waitforbuttonpress()
-# ax.scatter(points[:,0], points[:,1], color="black")
+chosen_verts = points[np.nonzero(verts)]
+ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")
+plt.draw()
+plt.waitforbuttonpress()
+#ax.scatter(points[:,0], points[:,1], color="black")
+
+def sample_node(w):
+	return w.sample_cfree(1)[0]
+
+sample_node_handle = partial(sample_node, w = world)
+dg = DoubleGreedy(alpha = 0.01,
+		  		  eps = 0.005,
+				  max_samples = 1500,
+				  sample_node_handle=sample_node_handle,
+				  los_handle = world.visible,
+				  verbose=True)
+chosen_verts = np.array(dg.construct_independent_set())
+chosen_verts = np.array(dg.refine_independent_set_greedy())
+ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="blue")
+print("Hidden Set Size: ", len(chosen_verts), " in ", len(dg.points), " samples")
+plt.draw()
+plt.waitforbuttonpress()
+
 m, verts = solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=1000)
-#print('Binary Quad Relaxation + Rounding', m)
-print(verts)
+print('Binary Quad Relaxation + Rounding', m)
+#print(verts)
 chosen_verts = points[np.nonzero(verts)]
 ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")
 plt.draw()
