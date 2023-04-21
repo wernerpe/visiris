@@ -115,7 +115,11 @@ class World():
 			self.obstacle_triangles.append(HPolyhedron(VPolytope(tri_points)))
 
 	def plot_cfree(self, ax):
-		shapely.plotting.plot_polygon(self.cfree_polygon, ax=ax, add_points=False)
+		#shapely.plotting.plot_polygon(self.cfree_polygon, ax=ax, add_points=False)
+		for tri in self.obstacle_triangles:
+			v = VPolytope(tri).vertices().T
+			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
+			ax.fill(v[:,0], v[:,1], alpha = 1.0, c = 'k')
 
 	def plot_boundary(self, ax):
 		shapely.plotting.plot_polygon(self.outer_boundary, ax=ax, facecolor=(1,1,1,0), edgecolor="red", add_points=False)
