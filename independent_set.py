@@ -114,7 +114,8 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 		idxmax = np.argmax(fixed_vals)
 		vals_gw.append(fixed_vals[idxmax])
 		xsols.append(fixed_sols[idxmax])
-
+	
+	print('Probability of constraint violation')
 	# for val, x in zip(vals_gw, xsols):
 	# 	V_sol = x.reshape(-1,1)@x.reshape(1,-1)
 	# 	violations = 0

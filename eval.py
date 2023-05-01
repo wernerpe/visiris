@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 np.random.seed(0)
 favorite_polys = ["srpg_iso_aligned_mc0000172.instance.json", "cheese102.instance.json", "srpg_mc0000579.instance.json", "fpg-poly_0000000070_h1.instance.json"]
 world = World("./data/examples_01/"+favorite_polys[0])
-n = 1500
+n = 500
 # 1: Visibility graph + Integer Program, 
 # 2: SDP relaxation + rounding, 
 # 3: Double Greedy 
-APPROACH = 3 
+APPROACH = 2 
+PLOT_EDGES = 0
 
 fig, ax = plt.subplots()
 world.plot_cfree(ax)
@@ -30,7 +31,7 @@ if APPROACH !=3:
 	for i in tqdm(range(n)):
 		point = world.sample_cfree(1)[0]
 		#ax.scatter([point[0]], [point[1]], color="black", s = 2)
-		for j in range(len(points)):
+		for j in range(len(points[:i])):
 			other = points[j]
 			if world.visible(point, other):
 				#ax.plot([point[0], other[0]], [point[1], other[1]], color="black", linewidth=0.25, alpha = 0.5)
@@ -38,8 +39,9 @@ if APPROACH !=3:
 				adj_mat[i,j] = adj_mat[j,i] = 1
 		points[i] = point
 	ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
-	for e in edge_endpoints:
-		ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
+	if PLOT_EDGES:
+			for e in edge_endpoints:
+				ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
 	plt.draw()
 	plt.pause(0.001)
 
@@ -73,7 +75,7 @@ elif APPROACH ==3:
 		return w.sample_cfree(1)[0]
 
 	sample_node_handle = partial(sample_node, w = world)
-	dg = DoubleGreedy(alpha = 0.01,
+	dg = DoubleGreedy(alpha = 0.001,
 					eps = 0.001,
 					max_samples = n,
 					sample_node_handle=sample_node_handle,
