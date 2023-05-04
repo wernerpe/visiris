@@ -79,13 +79,24 @@ elif APPROACH ==3:
 					  verbose=True,
 					  seed = 1)
 	chosen_verts = np.array(dg.construct_independent_set())
+	violations = 0
+	for i in dg.independent_set:
+		for j in dg.independent_set:
+			if i!=j:
+				violations += adj_mat[i,j]
+	print("violations", violations)
 	print("Initial Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
 	chosen_verts = np.array(dg.refine_independent_set_greedy())
+	violations = 0
+	for i in dg.independent_set:
+		for j in dg.independent_set:
+			if i!=j:
+				violations += adj_mat[i,j]
+	print("violations", violations)
 	ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red", s = 15)
 	plt.pause(0.1)
 	print("Double Greedy Solution")
 	print("Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
-	plt.show()
 elif APPROACH ==4:
 	def sample_node(w):
 		return w.sample_cfree(1)[0]
@@ -105,7 +116,7 @@ elif APPROACH ==4:
 	print("Double Greedy Solution")
 	print("Hidden Set Size: ", len(chosen_verts), " in ", len(dg.points), " samples")
 else:
-	raise NotImplementedError("Choose valid approach {1,2,3}, chosen", APPROACH)
+	raise NotImplementedError("Choose valid approach {1,2,3,4}, chosen", APPROACH)
 regions, seed_points = generate_regions_multi_threading(chosen_verts, world.obstacle_triangles, world.iris_domain)
 print('done generating regions')
 for r in regions:

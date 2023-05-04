@@ -170,7 +170,7 @@ class DoubleGreedy:
 				#greedily add to independent set
 				self.independent_set.append(p)
 			self.unvisited_nodes.remove(p)
-			if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +"[DoubleGreedy]  #Unvisited Nodes = ", str(len(self.unvisited_nodes))) 
+			if self.verbose and (len(self.unvisited_nodes)%50) == 0: print(strftime("[%H:%M:%S] ", gmtime()) +"[DoubleGreedy]  #Unvisited Nodes = ", str(len(self.unvisited_nodes))) 
 		return [self.Vertices[v] for v in self.independent_set]
 
 	def compute_kernel_of_hidden_point(self, point_index):
