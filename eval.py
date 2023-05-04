@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from functools import partial
 from cgdataset import World
-from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW, DoubleGreedy
+from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW, DoubleGreedy,DoubleGreedyPartialVisbilityGraph
 from pydrake.geometry.optimization import (
     HPolyhedron, VPolytope, Iris, IrisOptions, Hyperellipsoid)
 from region_generation import generate_regions_multi_threading
@@ -15,7 +15,9 @@ n = 500
 # 1: Visibility graph + Integer Program, 
 # 2: SDP relaxation + rounding, 
 # 3: Double Greedy 
-APPROACH = 2 
+# 4: Double Greedy with partial visibility graph construction
+
+APPROACH = 3
 PLOT_EDGES = 0
 
 fig, ax = plt.subplots()
@@ -25,7 +27,7 @@ plt.draw()
 plt.pause(0.001)
 #plt.waitforbuttonpress()
 edge_endpoints = []
-if APPROACH !=3:
+if APPROACH !=4:
 	points = np.zeros((n,2))
 	adj_mat = np.zeros((n,n))
 	for i in tqdm(range(n)):
@@ -40,8 +42,8 @@ if APPROACH !=3:
 		points[i] = point
 	ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
 	if PLOT_EDGES:
-			for e in edge_endpoints:
-				ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
+		for e in edge_endpoints:
+			ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
 	plt.draw()
 	plt.pause(0.001)
 
@@ -71,11 +73,25 @@ elif APPROACH ==2:
 	plt.draw()
 
 elif APPROACH ==3:
+	np.random.seed(1)
+	dg = DoubleGreedy(Vertices = points,
+		   			  Adjacency_matrix=adj_mat,
+					  verbose=True,
+					  seed = 1)
+	chosen_verts = np.array(dg.construct_independent_set())
+	print("Initial Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
+	chosen_verts = np.array(dg.refine_independent_set_greedy())
+	ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red", s = 15)
+	plt.pause(0.1)
+	print("Double Greedy Solution")
+	print("Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
+	plt.show()
+elif APPROACH ==4:
 	def sample_node(w):
 		return w.sample_cfree(1)[0]
 
 	sample_node_handle = partial(sample_node, w = world)
-	dg = DoubleGreedy(alpha = 0.001,
+	dg = DoubleGreedyPartialVisbilityGraph(alpha = 0.001,
 					eps = 0.001,
 					max_samples = n,
 					sample_node_handle=sample_node_handle,

@@ -4,6 +4,7 @@ from pydrake.all import MathematicalProgram, Solve, SolverOptions, CommonSolverO
 import pydrake
 import networkx as nx
 from time import strftime, gmtime
+import random
 
 def solve_lovasz_sdp(adj_mat):
 	print("Setting Up Mathematical Program")
@@ -134,6 +135,89 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 	return vals_gw[idxmax], xsol[1:] == xsol[0]
 
 class DoubleGreedy:
+	def __init__(self,
+	      		 Vertices,
+				 Adjacency_matrix,
+		 		 verbose = False,
+				 seed = 0
+				 ):
+		np.random.seed(seed)
+		random.seed(seed)
+		self.verbose = verbose	
+		self.independent_set = []
+		self.unvisited_nodes = [i for i in range(len(Vertices))]
+		self.sample_set = []
+		self.points = []
+		self.Adj_mat = Adjacency_matrix
+		self.Vertices = Vertices
+		# if self.verbose: 
+		# 	print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Point insertion attempts M:', str(self.M))
+		# 	print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] {} probability that unseen region is less than {} "%" of Cfree '.format(1-self.alpha, 100*eps))
+
+	def sample_node(self,):
+		#find a
+		idx_rnd = random.choice(self.unvisited_nodes) 
+		return idx_rnd
+	
+	def construct_independent_set(self,):
+		it = 0
+		while len(self.unvisited_nodes):
+			p = self.sample_node()
+			visible_points = np.where(self.Adj_mat[p,:] == 1)[0]
+			if any(v in self.independent_set for v in visible_points):
+				self.sample_set.append(p)
+			else:
+				#greedily add to independent set
+				self.independent_set.append(p)
+			self.unvisited_nodes.remove(p)
+			if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +"[DoubleGreedy]  #Unvisited Nodes = ", str(len(self.unvisited_nodes))) 
+		return [self.Vertices[v] for v in self.independent_set]
+
+	def compute_kernel_of_hidden_point(self, point_index):
+		assert point_index in self.independent_set
+		ker = []
+		adj_p = np.where(self.Adj_mat[point_index, :]==1)[0]
+		for s in self.sample_set:
+			if s in adj_p:
+				adj_s  = np.where(self.Adj_mat[s]==1)[0]
+				if len(np.where([v in self.independent_set for v in adj_s])[0])==1:
+					ker.append(s)
+				else:
+					pass
+		return ker
+	
+	def get_new_set_candidates(self, point_index):
+		kernel_points_index = self.compute_kernel_of_hidden_point(point_index)
+		kernel_points_index += [point_index]
+		if len(kernel_points_index)>1:
+			reduced_adjacency_rows = self.Adj_mat[kernel_points_index]
+			reduced_adjacency = reduced_adjacency_rows[:, kernel_points_index]
+			rows, cols = np.where(reduced_adjacency == 1)
+			edges = zip(rows.tolist(), cols.tolist())
+			graph = nx.Graph()
+			graph.add_edges_from(edges)
+			idx_ind = nx.maximal_independent_set(graph)
+			return [kernel_points_index[i] for i in idx_ind] 
+		else:
+			return [point_index]
+		
+	def refine_independent_set_greedy(self):
+		continue_splitting = True
+		while continue_splitting:
+			candidate_splits = [self.get_new_set_candidates(p) for p in self.independent_set]
+			best_split = max(candidate_splits, key = len)
+			best_split_idx = candidate_splits.index(best_split)
+			if len(best_split)>1:
+				if self.verbose: print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Hidden point found to split into', len(best_split))
+				self.independent_set.remove(self.independent_set[best_split_idx])
+				self.independent_set += best_split
+			else:
+				continue_splitting = False
+		return [self.Vertices[ih] for ih in self.independent_set]
+	
+
+
+class DoubleGreedyPartialVisbilityGraph:
 	def __init__(self,
 	      		 alpha = 0.05,
                  eps = 0.05,
