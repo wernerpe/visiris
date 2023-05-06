@@ -5,6 +5,7 @@ import pydrake
 import networkx as nx
 from time import strftime, gmtime
 import random
+from scipy.sparse import lil_matrix
 
 def solve_lovasz_sdp(adj_mat):
 	print("Setting Up Mathematical Program")
@@ -73,6 +74,7 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 	result = Solve(prog, solver_options=solver_options)
 
 	C = np.linalg.cholesky(result.GetSolution(V)+ np.eye(n+1)*1e-8)
+	#C = np.fromfile("C_sol.txt")
 	U = C.T
 	r = U.shape[0]
 	vals_gw = []
@@ -149,6 +151,9 @@ class DoubleGreedy:
 		self.sample_set = []
 		self.points = []
 		self.Adj_mat = Adjacency_matrix
+		self.adj_is_sparse = type(self.Adj_mat) == lil_matrix
+		if self.adj_is_sparse:
+			raise ValueError("Implementation is buggy")
 		self.Vertices = Vertices
 		# if self.verbose: 
 		# 	print(strftime("[%H:%M:%S] ", gmtime()) +'[DoubleGreedy] Point insertion attempts M:', str(self.M))
@@ -163,7 +168,10 @@ class DoubleGreedy:
 		it = 0
 		while len(self.unvisited_nodes):
 			p = self.sample_node()
-			visible_points = np.where(self.Adj_mat[p,:] == 1)[0]
+			if self.adj_is_sparse:
+				visible_points = np.where(self.Adj_mat.getrow(p).toarray() == 1)[0]
+			else:
+				visible_points = np.where(self.Adj_mat[p,:] == 1)[0]
 			if any(v in self.independent_set for v in visible_points):
 				self.sample_set.append(p)
 			else:
@@ -176,10 +184,16 @@ class DoubleGreedy:
 	def compute_kernel_of_hidden_point(self, point_index):
 		assert point_index in self.independent_set
 		ker = []
-		adj_p = np.where(self.Adj_mat[point_index, :]==1)[0]
+		if self.adj_is_sparse:
+			adj_p = np.where(self.Adj_mat.getrow(point_index).toarray() == 1)[0]
+		else:
+			adj_p = np.where(self.Adj_mat[point_index,:] == 1)[0]
 		for s in self.sample_set:
 			if s in adj_p:
-				adj_s  = np.where(self.Adj_mat[s]==1)[0]
+				if self.adj_is_sparse:
+					adj_s = np.where(self.Adj_mat.getrow(s).toarray() == 1)[0]
+				else:
+					adj_s  = np.where(self.Adj_mat[s]==1)[0]
 				if len(np.where([v in self.independent_set for v in adj_s])[0])==1:
 					ker.append(s)
 				else:
@@ -190,7 +204,7 @@ class DoubleGreedy:
 		kernel_points_index = self.compute_kernel_of_hidden_point(point_index)
 		kernel_points_index += [point_index]
 		if len(kernel_points_index)>1:
-			reduced_adjacency_rows = self.Adj_mat[kernel_points_index]
+			reduced_adjacency_rows = self.Adj_mat[kernel_points_index, :] if not self.adj_is_sparse else self.Adj_mat[kernel_points_index, :].toarray()
 			reduced_adjacency = reduced_adjacency_rows[:, kernel_points_index]
 			rows, cols = np.where(reduced_adjacency == 1)
 			edges = zip(rows.tolist(), cols.tolist())

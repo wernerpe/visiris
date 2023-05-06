@@ -9,6 +9,25 @@ import shapely.plotting
 import triangle
 from pydrake.all import HPolyhedron, VPolytope
 
+def extract_small_examples(size_limit = 700):
+	import os 
+	polys = os.listdir("./data/examples_01")
+
+	sizes = []
+	for p in polys:
+		fs = 0
+		with open("./data/examples_01/"+p) as file:
+				data = json.load(file)
+				fs+= len(data['outer_boundary']) + len(data['holes']) *3
+		sizes.append(fs)
+	small_polys = np.where(np.array(sizes) <= size_limit)[0]
+	small_polys = [polys[s] for s in small_polys]
+	print(len(small_polys), ' small examples found')
+
+	with open("./data/small_polys.txt", 'w') as f:
+		for p in small_polys:
+			f.write(p+'\n')
+
 def vert_list_to_numpy_array(vert_list, scaler = 1.0):
 	return np.array([[scaler*obj['x'], scaler*obj['y']] for obj in vert_list])
 
@@ -37,7 +56,7 @@ class World():
 	#  - Obstacles as Shapely Polygons
 	#  - Obstacles as Triangles (HRep Polyhedra)
 	#  - C-Free as a Shapely Polygon
-	def __init__(self, fname):
+	def __init__(self, fname, create_boundary_obstacles = True):
 		# Load the world specified by the given dataset
 		with open(fname) as file:
 			data = json.load(file)
@@ -61,7 +80,8 @@ class World():
 				holes=[poly.exterior.coords[:-1] for poly in self.obstacle_polygons]
 			)
 			self.iris_domain = None
-			self.domain_obstacles = self._create_boundary_obstacles()
+			if create_boundary_obstacles:
+				self.domain_obstacles = self._create_boundary_obstacles()
 			
 	def _parse_obstacle(self, vert_list):
 		# vert_list is a list of dictionaries, with keys 'x' and 'y'.

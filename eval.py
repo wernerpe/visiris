@@ -6,12 +6,22 @@ from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer,
 from pydrake.geometry.optimization import (
     HPolyhedron, VPolytope, Iris, IrisOptions, Hyperellipsoid)
 from region_generation import generate_regions_multi_threading
+from visibility_graphs import get_visibility_graph
 import matplotlib.pyplot as plt
 
-np.random.seed(0)
-favorite_polys = ["srpg_iso_aligned_mc0000172.instance.json", "cheese102.instance.json", "srpg_mc0000579.instance.json", "fpg-poly_0000000070_h1.instance.json"]
-world = World("./data/examples_01/"+favorite_polys[0])
-n = 500
+seed = 0 
+np.random.seed(seed)
+#extract_small_examples(2000)
+small_polys = []
+with open("./data/small_polys.txt") as f:
+	for line in f:
+		small_polys.append(line.strip())
+favorite_polys = small_polys
+world_name = favorite_polys[0]
+world = World("./data/examples_01/"+world_name)
+n = 100
+
+
 # 1: Visibility graph + Integer Program, 
 # 2: SDP relaxation + rounding, 
 # 3: Double Greedy 
@@ -26,20 +36,9 @@ world.plot_cfree(ax)
 plt.draw()
 plt.pause(0.001)
 #plt.waitforbuttonpress()
-edge_endpoints = []
 if APPROACH !=4:
-	points = np.zeros((n,2))
-	adj_mat = np.zeros((n,n))
-	for i in tqdm(range(n)):
-		point = world.sample_cfree(1)[0]
-		#ax.scatter([point[0]], [point[1]], color="black", s = 2)
-		for j in range(len(points[:i])):
-			other = points[j]
-			if world.visible(point, other):
-				#ax.plot([point[0], other[0]], [point[1], other[1]], color="black", linewidth=0.25, alpha = 0.5)
-				edge_endpoints.append([[point[0], other[0]], [point[1], other[1]]])
-				adj_mat[i,j] = adj_mat[j,i] = 1
-		points[i] = point
+	points, adj_mat, edge_endpoints, twgen, tgraphgen = get_visibility_graph(world_name, world, n, seed) 
+	adj_mat = adj_mat.toarray()
 	ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
 	if PLOT_EDGES:
 		for e in edge_endpoints:
@@ -73,11 +72,10 @@ elif APPROACH ==2:
 	plt.draw()
 
 elif APPROACH ==3:
-	np.random.seed(1)
 	dg = DoubleGreedy(Vertices = points,
 		   			  Adjacency_matrix=adj_mat,
 					  verbose=True,
-					  seed = 1)
+					  seed = seed)
 	chosen_verts = np.array(dg.construct_independent_set())
 	violations = 0
 	for i in dg.independent_set:
