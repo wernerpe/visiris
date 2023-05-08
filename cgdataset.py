@@ -18,7 +18,7 @@ def extract_small_examples(size_limit = 700):
 		fs = 0
 		with open("./data/examples_01/"+p) as file:
 				data = json.load(file)
-				fs+= len(data['outer_boundary']) + len(data['holes']) *3
+				fs+= len(data['outer_boundary']) + np.sum([len(h) for h in data['holes']])
 		sizes.append(fs)
 	small_polys = np.where(np.array(sizes) <= size_limit)[0]
 	small_polys = [polys[s] for s in small_polys]

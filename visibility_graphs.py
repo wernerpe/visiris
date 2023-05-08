@@ -49,8 +49,8 @@ def get_visibility_graph(world_name, world, n, seed):
 if __name__ == '__main__':
     
     #write all polys that are smaller than 2000 size into file with timing info
-    #extract_small_examples(2000)
-    n = 500
+    extract_small_examples(1000)
+    #n = 500
     seed = 0
     small_polys = []
     with open("./data/small_polys.txt") as f:
@@ -59,15 +59,17 @@ if __name__ == '__main__':
     
     existing_visibility_graphs = os.listdir("./data/pre_generated_visibility_graphs/")
 
-    for idx, p in enumerate(small_polys): 
-        print("example ", idx, "/", len(small_polys))
-        path = "./data/examples_01/"+p
-        name = p[:-5]+f"_visgraph_{n}_{seed}.pkl"
-        if name not in existing_visibility_graphs:
-            t0 = time.time()
-            world = World(path, create_boundary_obstacles=False)
-            t1 = time.time()
-            points, adj_mat, edge_endpoints = create_visibility_graph(world, n, seed)
-            t2 = time.time()
-            with open("./data/pre_generated_visibility_graphs/"+name, 'wb') as f:
-                pickle.dump({'verts':points, 'adj': adj_mat, 'edge_endpoints': edge_endpoints, 'world_gen_time': t1-t0, 'vis_graph_gen_time': t2-t1},f)
+    for n in [450, 500]:
+        print("n = ", n)
+        for idx, world_name in enumerate(small_polys): 
+            print("example ", idx, "/", len(small_polys))
+            name = world_name[:-5]+f"_visgraph_{n}_{seed}.pkl"
+            if name not in existing_visibility_graphs:
+                t0 = time.time()
+                path = "./data/examples_01/"+world_name
+                world = World(path, create_boundary_obstacles=False)
+                t1 = time.time()
+                points, adj_mat, edge_endpoints, _, tgraphgen = get_visibility_graph(world_name, world, n, seed)
+                t2 = time.time()
+                with open("./data/pre_generated_visibility_graphs/"+name, 'wb') as f:
+                    pickle.dump({'verts':points, 'adj': adj_mat, 'edge_endpoints': edge_endpoints, 'world_gen_time': t1-t0, 'vis_graph_gen_time': tgraphgen},f)
