@@ -29,7 +29,7 @@ def get_visibility_graph(world_name, world, n, seed):
 
     name = world_name[:-5]+f"_visgraph_{n}_{seed}.pkl"
     existing_visibility_graphs = os.listdir("./data/pre_generated_visibility_graphs/")
-    if name in existing_visibility_graphs and not seed ==0:
+    if name in existing_visibility_graphs:
         print("example precomputed")
         with open("./data/pre_generated_visibility_graphs/"+name, 'rb') as f:
             dict = pickle.load(f)
