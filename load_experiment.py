@@ -13,6 +13,19 @@ import time
 import os
 import shapely
 from shapely.ops import cascaded_union
+import re
+
+def extract_string_before_first_digit(string):
+	match = re.search(r"\d", string)
+	if match:
+		name_head = string[:match.start()]
+		is_zeros = string[match.start():match.start()+3] == '000'
+		number = string[match.start()+match.end()-1-3:match.start()+match.end()-1] if is_zeros else string[match.start():match.start()+3]
+		name_head = name_head if len(name_head)<6 else name_head[:7]
+		name = name_head + '_' + number
+		return name  
+	else:
+		return string
 # 1: Visibility graph + Integer Program, 
 # 2: SDP relaxation + rounding, 
 # 3: Double Greedy 
@@ -85,11 +98,11 @@ for world_name in small_polys:
 n = 450
 seed = 0
 
-fig, axs = plt.subplots(nrows = 1, ncols=3, figsize = (10, 8))
+fig, axs = plt.subplots(nrows = 1, ncols=3, figsize = (15, 8))
 names = ['time [s]', 'num regions', 'coverage cfree']
 for idx, ax in enumerate(axs):
 	ax.set_xticks(np.arange(len(small_polys)))
-	ax.set_xticklabels([s[:-14] for s in small_polys], rotation = 45,  ha='right')
+	ax.set_xticklabels([extract_string_before_first_digit(s[:-14]) for s in small_polys], rotation = 45,  ha='right')
 	ax.set_ylabel(names[idx])
 	data_integer = [0]*len(small_polys)
 	data_sdp = [0]*len(small_polys)
@@ -107,13 +120,14 @@ for idx, ax in enumerate(axs):
 					data_sdp[idx_world] = dat
 				else:
 					data_greedy[idx_world] = dat
-	ax.plot(data_integer, label = 'integer', c = 'k')
-	ax.plot(data_sdp, label = 'sdp', c = 'r')
-	ax.plot(data_greedy, label = 'double greedy', c = 'g')
+	ax.plot(data_integer, linewidth=0.5, marker = 'o', label = 'integer', c = 'k')
+	ax.plot(data_sdp, label = 'sdp', linewidth=0.5, marker = '^', c = 'r')
+	ax.plot(data_greedy, label = 'double greedy',linewidth=0.5, marker = 'x', c = 'g')
 	ax.legend()
+	fig.suptitle(f"Visibility Graph with {n} Nodes", fontsize=16)
 plt.show()
 
-
+print('')
 # experiment_name = experiment_string(world_name, n, seed, APPROACH)
 # world = World("./data/examples_01/"+world_name)
 # points, adj_mat, edge_endpoints, chosen_verts, regions, timings = load_experiment(world_name[:-5]+'/'+experiment_name+'.log',
