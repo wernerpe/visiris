@@ -16,7 +16,7 @@ import os
 # 3: Double Greedy 
 # 4: Double Greedy with partial visibility graph construction
 
-APPROACH = 2
+APPROACH = 3
 PLOT_EDGES = 0
 
 seed = 0 

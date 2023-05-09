@@ -29,6 +29,7 @@ with open("./data/small_polys.txt") as f:
 		small_polys.append(line.strip())
 world_name = small_polys[0]
 
+experiments = {}
 for world_name in small_polys:
 	world_experiments_strings = os.listdir("./experiment_logs/"+world_name[:-5])
 	world_experiments = []
@@ -62,29 +63,55 @@ for world_name in small_polys:
 		num_regions.append(len(regions))
 		coverage.append(coverage_experiment)
 
+	experiments[exp_string] = [computation_time, num_regions, coverage, world_experiments]
 
-	fig, axs = plt.subplots(nrows = 1, ncols=3)
-	data = [computation_time, num_regions, coverage]
-	names = ['time [s]', 'num regions', 'coverage cfree']
-	n = 450
-	seed = 0
-	for ax, data_col, name_col in zip(axs, data, names):
-		nfields = 3
-		xpos = np.arange(nfields)
-		labels = ['integer','sdp + rounding', 'double greedy']
-		data_mean = [0]*3
-		data_std = [0]*3
-		for exp, d_exp in zip(world_experiments, data_col):
-			if int(exp[0]) == n and int(exp[1]) == seed:
-				data_mean[int(exp[-1])-1] = d_exp
+	#fig, axs = plt.subplots(nrows = 1, ncols=3, figsize = (10, 8))
+	#data = [computation_time, num_regions, coverage]
+	# for ax, data_col, name_col in zip(axs, data, names):
+	# 	nfields = 3
+	# 	xpos = np.arange(nfields)
+	# 	labels = ['integer','sdp + rounding', 'double greedy']
+	# 	data_mean = [0]*3
+	# 	data_std = [0]*3
+	# 	for exp, d_exp in zip(world_experiments, data_col):
+	# 		if int(exp[0]) == n and int(exp[1]) == seed:
+	# 			data_mean[int(exp[-1])-1] = d_exp
 
-		ax.bar(xpos, data_mean, yerr= data_std , color=['#1f77b4','#ff7f0e', '#2ca02c'], ecolor='black', capsize=20)
-		ax.set_ylabel(name_col)
-		ax.set_xticks(xpos)
-		ax.set_xticklabels(labels)
-		#shapely.plotting.plot_polygon(union_of_Polyhedra, ax=ax, add_points=True)
-	plt.show()
-	plt.show()
+	# 	ax.bar(xpos, data_mean, yerr= data_std , color=['#1f77b4','#ff7f0e', '#2ca02c'], ecolor='black', capsize=20)
+	# 	ax.set_ylabel(name_col)
+	# 	ax.set_xticks(xpos)
+	# 	ax.set_xticklabels(labels)
+	# 	#shapely.plotting.plot_polygon(union_of_Polyhedra, ax=ax, add_points=True)
+n = 450
+seed = 0
+
+fig, axs = plt.subplots(nrows = 1, ncols=3, figsize = (10, 8))
+names = ['time [s]', 'num regions', 'coverage cfree']
+for idx, ax in enumerate(axs):
+	ax.set_xticks(np.arange(len(small_polys)))
+	ax.set_xticklabels([s[:-14] for s in small_polys], rotation = 45,  ha='right')
+	ax.set_ylabel(names[idx])
+	data_integer = [0]*len(small_polys)
+	data_sdp = [0]*len(small_polys)
+	data_greedy = [0]*len(small_polys)
+
+	for idx_world, (key, exp) in enumerate(experiments.items()):
+		data = exp[idx]
+		infos = exp[-1]
+		for dat,  info in zip(data, infos):
+			nstr, seedstr, approach_str = info
+			if int(nstr) == n:
+				if int(approach_str) == 1:
+					data_integer[idx_world] = dat
+				elif int(approach_str) ==2:
+					data_sdp[idx_world] = dat
+				else:
+					data_greedy[idx_world] = dat
+	ax.plot(data_integer, label = 'integer', c = 'k')
+	ax.plot(data_sdp, label = 'sdp', c = 'r')
+	ax.plot(data_greedy, label = 'double greedy', c = 'g')
+	ax.legend()
+plt.show()
 
 
 # experiment_name = experiment_string(world_name, n, seed, APPROACH)
