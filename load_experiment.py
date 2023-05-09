@@ -68,7 +68,7 @@ for world_name in small_polys:
 		for r in regions:
 			verts = sorted_vertices(VPolytope(r))
 			shapely_regions.append(shapely.Polygon(verts.T))
-		comptime = timings[1]
+		comptime = timings[1] + timings[0]
 		union_of_Polyhedra = cascaded_union(shapely_regions)
 		coverage_experiment = union_of_Polyhedra.area/world.cfree_polygon.area
 		
@@ -107,6 +107,7 @@ for idx, ax in enumerate(axs):
 	data_integer = [0]*len(small_polys)
 	data_sdp = [0]*len(small_polys)
 	data_greedy = [0]*len(small_polys)
+	data_greedy_partial = [0]*len(small_polys)
 
 	for idx_world, (key, exp) in enumerate(experiments.items()):
 		data = exp[idx]
@@ -118,190 +119,17 @@ for idx, ax in enumerate(axs):
 					data_integer[idx_world] = dat
 				elif int(approach_str) ==2:
 					data_sdp[idx_world] = dat
-				else:
+				elif int(approach_str) ==3:
 					data_greedy[idx_world] = dat
+				elif int(approach_str) ==4:
+					data_greedy_partial[idx_world] = dat
+				
 	ax.plot(data_integer, linewidth=0.5, marker = 'o', label = 'integer', c = 'k')
 	ax.plot(data_sdp, label = 'sdp', linewidth=0.5, marker = '^', c = 'r')
 	ax.plot(data_greedy, label = 'double greedy',linewidth=0.5, marker = 'x', c = 'g')
+	ax.plot(data_greedy_partial, label = 'double greedy partial',linewidth=0.5, marker = 's', c = 'b')
 	ax.legend()
 	fig.suptitle(f"Visibility Graph with {n} Nodes", fontsize=16)
 plt.show()
 
 print('')
-# experiment_name = experiment_string(world_name, n, seed, APPROACH)
-# world = World("./data/examples_01/"+world_name)
-# points, adj_mat, edge_endpoints, chosen_verts, regions, timings = load_experiment(world_name[:-5]+'/'+experiment_name+'.log',
-# 								    								world_name,
-# 																	world,
-# 																	n,
-# 																	seed)
-
-# adj_mat = adj_mat.toarray()
-
-# fig, ax = plt.subplots()
-# world.plot_cfree(ax)
-# plt.draw()
-# plt.pause(0.001)
-# ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
-# ax.scatter(chosen_verts[:, 0 ], chosen_verts[:,1], color="red", s = 10)
-# if PLOT_EDGES:
-# 	for e in edge_endpoints:
-# 		ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
-# for r in regions:
-# 	world.plot_HPoly(ax, r)
-
-# plt.draw()
-# plt.pause(0.001)
-
-# shapely_regions = []
-# for r in regions:
-# 	verts = sorted_vertices(VPolytope(r))
-# 	shapely_regions.append(shapely.Polygon(verts.T))
-
-
-# iris_with_region_obstacles_handle = partial(generate_region_with_region_obstacles, obstacles = world.obstacle_triangles, domain=world.iris_domain)
-
-# regions, seed_points, seed_point_index = fill_remaining_space(ax, points, chosen_verts, adj_mat, regions, iris_with_region_obstacles_handle)
-
-# shapely_regions = []
-# for r in regions:
-# 	verts = sorted_vertices(VPolytope(r))
-# 	shapely_regions.append(shapely.Polygon(verts.T))
-
-
-# union_of_Polyhedra = cascaded_union(shapely_regions)
-# shapely.plotting.plot_polygon(union_of_Polyhedra, ax=ax, add_points=True)
-
-# for r in regions:
-# 	world.plot_HPoly(ax, r)
-# plt.draw()
-# plt.pause(0.001)
-# print('')
-# # 	# #
-# # 	# # sample
-# #     # samples_outside_regions = vs.samples_outside_regions
-# #     # regions = vs.regions
-# #     # connectivity_graph = vs.connectivity_graph
-# #     # key_max = ''
-# #     # max_vis_components = -1
-# #     # #get connected components
-# #     # components = [list(a) for a in nx.connected_components(connectivity_graph)]
-# #     # #check if all nodes to connect are part of a single connected component
-# #     # nodes_to_connect = vs.nodes_to_connect if len(vs.nodes_to_connect) else vs.guard_regions
-# #     # for c in components:
-# #     #     if set(nodes_to_connect) & set(c) == set(nodes_to_connect):
-# #     #         return None, True
-
-
-
-# # #extract_small_examples(2000)
-
-
-# # favorite_polys = small_polys
-# # #world_name = favorite_polys[0]
-# # for n in [200, 300, 350, 400, 450, 500, 550]:
-# # 	for world_name in favorite_polys:
-
-# # 		experiment_name = experiment_string(world_name, n, seed, APPROACH)
-# # 		prerun_experiments = os.listdir("./experiment_logs/"+world_name[:-5])
-# # 		if experiment_name+".log" in prerun_experiments:
-# # 			print("experiment already run")
-# # 		else:
-# # 			print("running experiment")
-# # 			create_experiment_directory(world_name, n, seed)
-# # 			world = World("./data/examples_01/"+world_name)
-
-# # 			fig, ax = plt.subplots()
-# # 			world.plot_cfree(ax)
-# # 			#world.plot_triangles(ax)
-# # 			plt.draw()
-# # 			plt.pause(0.001)
-# # 			#plt.waitforbuttonpress()
-# # 			if APPROACH !=4:
-# # 				points, adj_mat, edge_endpoints, twgen, tgraphgen = get_visibility_graph(world_name, world, n, seed) 
-# # 				adj_mat = adj_mat.toarray()
-# # 				ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
-# # 				if PLOT_EDGES:
-# # 					for e in edge_endpoints:
-# # 						ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
-# # 				plt.draw()
-# # 				plt.pause(0.001)
-
-# # 			#theta, mat = solve_lovasz_sdp(adj_mat)
-# # 			#print("Lovasz ")
-# # 			#print(theta)
-# # 			#print(mat)
-# # 			t0 = time.time()
-# # 			if APPROACH ==1:
-# # 				m, verts = solve_max_independent_set_integer(adj_mat)
-# # 				#print('Independent set sol', m)
-# # 				chosen_verts = points[np.nonzero(verts)]
-# # 				print("Integer Program Solution")
-# # 				print("Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
-# # 			elif APPROACH ==2:
-# # 				m, verts = solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=1000)
-# # 				chosen_verts = points[np.nonzero(verts)]
-# # 				print("Binary Quadratic SDP Relaxation + Rounding Solution")
-# # 				print("Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
-# # 				#ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")
-# # 				#ax.scatter(points[:,0], points[:,1], color="black", s = 1)
-# # 				plt.draw()
-
-# # 			elif APPROACH ==3:
-# # 				dg = DoubleGreedy(Vertices = points,
-# # 								Adjacency_matrix=adj_mat,
-# # 								verbose=True,
-# # 								seed = seed)
-# # 				chosen_verts = np.array(dg.construct_independent_set())
-# # 				# violations = 0
-# # 				# for i in dg.independent_set:
-# # 				# 	for j in dg.independent_set:
-# # 				# 		if i!=j:
-# # 				# 			violations += adj_mat[i,j]
-# # 				# print("violations", violations)
-# # 				# print("Initial Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
-# # 				chosen_verts = np.array(dg.refine_independent_set_greedy())
-# # 				# violations = 0
-# # 				# for i in dg.independent_set:
-# # 				# 	for j in dg.independent_set:
-# # 				# 		if i!=j:
-# # 				# 			violations += adj_mat[i,j]
-# # 				# print("violations", violations)
-# # 				#ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red", s = 15)
-# # 				#plt.pause(0.1)
-# # 				print("Double Greedy Solution")
-# # 				print("Hidden Set Size: ", len(chosen_verts), " in ", len(points), " samples")
-# # 			elif APPROACH ==4:
-# # 				def sample_node(w):
-# # 					return w.sample_cfree(1)[0]
-
-# # 				sample_node_handle = partial(sample_node, w = world)
-# # 				dg = DoubleGreedyPartialVisbilityGraph(alpha = 0.001,
-# # 								eps = 0.001,
-# # 								max_samples = n,
-# # 								sample_node_handle=sample_node_handle,
-# # 								los_handle = world.visible,
-# # 								verbose=True)
-# # 				chosen_verts = np.array(dg.construct_independent_set())
-# # 				chosen_verts = np.array(dg.refine_independent_set_greedy())
-# # 				# v_sampleset = np.array([dg.sample_set[k][0] for k in dg.sample_set.keys()])
-# # 				# ax.scatter(v_sampleset[:,0], v_sampleset[:,1], color="k", s = 1)
-# # 				print("Double Greedy Solution Partial Visibility Graph")
-# # 				print("Hidden Set Size: ", len(chosen_verts), " in ", len(dg.points), " samples")
-# # 			else:
-# # 				raise NotImplementedError("Choose valid approach {1,2,3,4}, chosen", APPROACH)
-# # 			t1 = time.time()
-# # 			ax.scatter(chosen_verts[:,0], chosen_verts[:,1], color="red")	
-# # 			plt.draw()
-# # 			plt.pause(0.01)
-# # 			#plt.waitforbuttonpress()
-# # 			regions, seed_points = generate_regions_multi_threading(chosen_verts, world.obstacle_triangles, world.iris_domain)
-# # 			print('done generating regions')
-# # 			for r in regions:
-# # 				world.plot_HPoly(ax, r)
-# # 			t2 = time.time()
-# # 			dump_experiment_results(world_name, experiment_name, chosen_verts, regions, t1-t0, t2-t1)
-# # #plt.draw()
-# # #plt.show()
-# # #plt.waitforbuttonpress()
-# # print('done')

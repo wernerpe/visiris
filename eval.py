@@ -9,7 +9,7 @@ from region_generation import generate_regions_multi_threading
 from visibility_graphs import get_visibility_graph
 import matplotlib.pyplot as plt
 
-seed = 0 
+seed = 1 
 np.random.seed(seed)
 #extract_small_examples(2000)
 small_polys = []
@@ -18,8 +18,8 @@ with open("./data/small_polys.txt") as f:
 		small_polys.append(line.strip())
 favorite_polys = small_polys
 world_name = favorite_polys[0]
-world = World("./data/examples_01/"+world_name)
-n = 100
+world = World("./data/examples_01/"+"fpg-poly_0000000070_h1.instance.json")
+n = 450
 
 
 # 1: Visibility graph + Integer Program, 
@@ -28,7 +28,7 @@ n = 100
 # 4: Double Greedy with partial visibility graph construction
 
 APPROACH = 3
-PLOT_EDGES = 0
+PLOT_EDGES = 1
 
 fig, ax = plt.subplots()
 world.plot_cfree(ax)
