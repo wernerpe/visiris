@@ -49,7 +49,7 @@ def solve_max_independent_set_integer(adj_mat):
 	result = Solve(prog, solver_options=solver_options)
 	return -result.get_optimal_cost(), result.GetSolution(v)
 
-def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint_fixes = 10):
+def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint_fixes = 10, sdp_solver=None):
 	n = adj_mat.shape[0]
 	prog = MathematicalProgram()
 	V = prog.NewSymmetricContinuousVariables(n+1)
@@ -71,9 +71,19 @@ def solve_max_independent_set_binary_quad_GW(adj_mat, n_rounds=100, n_constraint
 	solver_options = SolverOptions()
 	solver_options.SetOption(CommonSolverOption.kPrintToConsole, 1)
 
-	result = Solve(prog, solver_options=solver_options)
+	if sdp_solver is None:
+		result = Solve(prog, solver_options=solver_options)
+	else:
+		result = sdp_solver.Solve(prog, solver_options=solver_options)
 
-	C = np.linalg.cholesky(result.GetSolution(V)+ np.eye(n+1)*1e-8)
+	offset = 1e-20
+	while True:
+		try:
+			C = np.linalg.cholesky(result.GetSolution(V)+ np.eye(n+1)*offset)
+			break
+		except:
+			offset *= 10
+	print("Numerics required identity times 10^%d" % int(np.log10(offset)))
 	#C = np.fromfile("C_sol.txt")
 	U = C.T
 	r = U.shape[0]
