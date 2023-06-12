@@ -27,7 +27,7 @@ class VisSeeder:
         self.alpha = alpha
         self.eps = eps
         self.maxit = max_iterations
-        self.M = int(np.log(alpha)/np.log(1-eps))
+        self.M = int(np.log(alpha)/np.log(1-eps) + 0.5)
         if self.vb: 
             print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] GuardInsertion attempts M:', str(self.M))
             print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisSeeder] {1-self.alpha:.2f} probability that unseen region is less than {100*eps:.1f} '%' of Cfree ")
@@ -91,4 +91,4 @@ class VisSeeder:
         self.vgraph_points = data['vg']
         self.vgraph_admat = data['vad']
         self.seed_points = data['sp']
-        
+

@@ -25,3 +25,10 @@ def vis_reg(point, other, world, regions):
             if point_in_regions(pt, regions):
                 return False
     return True
+
+def sorted_vertices(vpoly):
+    assert vpoly.ambient_dimension() == 2
+    poly_center = np.sum(vpoly.vertices(), axis=1) / vpoly.vertices().shape[1]
+    vertex_vectors = vpoly.vertices() - np.expand_dims(poly_center, 1)
+    sorted_index = np.arctan2(vertex_vectors[1], vertex_vectors[0]).argsort()
+    return vpoly.vertices()[:, sorted_index]

@@ -10,10 +10,12 @@ from region_generation import generate_regions_multi_threading
 from utils import load_experiment
 import matplotlib.pyplot as plt
 from visibility_seeding import VisSeeder
-from seeding_utils import point_in_regions, vis_reg, shrink_regions
+from seeding_utils import point_in_regions, vis_reg, shrink_regions, sorted_vertices
+import shapely
+from shapely.ops import cascaded_union
 from scipy.sparse import lil_matrix
 
-seed = 0 
+seed = 1 
 np.random.seed(seed)
 #extract_small_examples(2000)
 small_polys = []
@@ -66,9 +68,11 @@ world.plot_cfree(ax)
 # 	world.plot_HPoly(ax, r, color = 'r')
 # plt.pause(0.01)
 
+alpha = 0.01
+eps = 0.1
 VS = VisSeeder(N = 200,
-	       	   alpha = 0.05,
-			   eps = 0.05,
+	       	   alpha = alpha,
+			   eps = eps,
 			   max_iterations = 10,
 			   sample_cfree = sample_cfree_handle,
 			   build_vgraph = vgraph_builder,
@@ -80,6 +84,14 @@ for g in VS.region_groups:
 	rnd_artist = ax.plot([0,0],[0,0], alpha = 0)
 	for r in g:
 		world.plot_HPoly(ax, r, color =rnd_artist[0].get_color())
+
+shapely_regions = []
+for r in regions:
+	verts = sorted_vertices(VPolytope(r))
+	shapely_regions.append(shapely.Polygon(verts.T))
+union_of_Polyhedra = cascaded_union(shapely_regions)
+coverage_experiment = union_of_Polyhedra.area/world.cfree_polygon.area
+plt.title(f"Area Coverage {coverage_experiment:.3f} in {len(regions)} regions, Bernoulli {1-alpha:.2f} prob that coverage larger than {1-eps:.2f}")
 plt.show()
 
 
