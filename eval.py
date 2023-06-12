@@ -27,8 +27,8 @@ n = 450
 # 3: Double Greedy 
 # 4: Double Greedy with partial visibility graph construction
 
-APPROACH = 3
-PLOT_EDGES = 1
+APPROACH = 1
+PLOT_EDGES = 0
 
 fig, ax = plt.subplots()
 world.plot_cfree(ax)

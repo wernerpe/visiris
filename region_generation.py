@@ -6,6 +6,7 @@ from pydrake.geometry.optimization import (
 import numpy as np
 import networkx as nx 
 import matplotlib.pyplot as plt
+
 def generate_regions(pts, Aobs, Bobs, Adom, bdom):
 	iris_options = IrisOptions()
 	iris_options.require_sample_point_is_contained = True
