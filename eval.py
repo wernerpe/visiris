@@ -7,9 +7,10 @@ from pydrake.geometry.optimization import (
     HPolyhedron, VPolytope, Iris, IrisOptions, Hyperellipsoid)
 from region_generation import generate_regions_multi_threading
 from visibility_graphs import get_visibility_graph
+from utils import load_experiment
 import matplotlib.pyplot as plt
 
-seed = 1 
+seed = 0 
 np.random.seed(seed)
 #extract_small_examples(2000)
 small_polys = []
@@ -17,31 +18,57 @@ with open("./data/small_polys.txt") as f:
 	for line in f:
 		small_polys.append(line.strip())
 favorite_polys = small_polys
-world_name = favorite_polys[0]
-world = World("./data/examples_01/"+"fpg-poly_0000000070_h1.instance.json")
+world_name = "cheese205.instance.json"#fpg-poly_0000000060_h1.instance.json"#"srpg_iso_aligned_mc0000172.instance.json"##"fpg-poly_0000000070_h1.instance.json"
+world = World("./data/examples_01/"+world_name)
 n = 450
+APPROACH = 3
+PLOT_EDGES = 1
+#experiment_name = 'cheese205.instance_experiment_1000_0_1'#'fpg-poly_0000000060_h1.instance_experiment_1000_0_1'#'srpg_iso_aligned_mc0000172.instance_experiment_1000_0_1'##'fpg-poly_0000000070_h1.instance_experiment_450_0_1'
+#points, adj_mat, edge_endpoints, chosen_verts, regions, timings = load_experiment(world_name[:-5]+'/'+experiment_name+'.log',
+																			# world_name,
+																			# world,
+																			# n,
+																			# seed)
 
+#points, adj_mat, edge_endpoints, twgen, tgraphgen = get_visibility_graph(world_name, world, n, seed) 
+# fig, ax = plt.subplots(figsize = (10,10))
+# world.plot_cfree(ax)
+# adj_mat = adj_mat.toarray()
+# #ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
+# # ax.scatter(chosen_verts[:,0], chosen_verts[:,1], c='r', s = 40)
+# if PLOT_EDGES:
+# 	for e in edge_endpoints[::10]:
+# 		ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
+# ax.scatter(chosen_verts[:,0], chosen_verts[:,1], c='r', s = 40)
+# for r in regions:
+# 	world.plot_HPoly(ax, r)
+# plt.draw()
+# plt.pause(0.001)
 
 # 1: Visibility graph + Integer Program, 
 # 2: SDP relaxation + rounding, 
 # 3: Double Greedy 
 # 4: Double Greedy with partial visibility graph construction
 
+<<<<<<< Updated upstream
 APPROACH = 1
 PLOT_EDGES = 0
+=======
+>>>>>>> Stashed changes
 
-fig, ax = plt.subplots()
-world.plot_cfree(ax)
-#world.plot_triangles(ax)
-plt.draw()
-plt.pause(0.001)
+
+
+# #world.plot_triangles(ax)
+# plt.show()
+# exit()
 #plt.waitforbuttonpress()
+fig, ax = plt.subplots(figsize = (10,10))
 if APPROACH !=4:
 	points, adj_mat, edge_endpoints, twgen, tgraphgen = get_visibility_graph(world_name, world, n, seed) 
 	adj_mat = adj_mat.toarray()
 	ax.scatter(points[:, 0 ], points[:,1], color="black", s = 2)
 	if PLOT_EDGES:
-		for e in edge_endpoints:
+		for e in edge_endpoints[::10]:
 			ax.plot(e[0], e[1], color="black", linewidth=0.25, alpha = 0.1)
 	plt.draw()
 	plt.pause(0.001)

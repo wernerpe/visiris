@@ -3,6 +3,9 @@ from independent_set_solver import solve_max_independent_set_integer
 from seeding_utils import shrink_regions
 import time
 from time import strftime,gmtime
+import matplotlib.pyplot as plt
+import pickle
+from pydrake.all import HPolyhedron
 
 class VisSeeder:
     def __init__(self,
@@ -13,7 +16,7 @@ class VisSeeder:
                  sample_cfree = None,
                  build_vgraph = None,
                  iris_w_obstacles = None,
-                 verbose = False
+                 verbose = False,
                  ):
         
         self.vb = verbose
@@ -33,6 +36,7 @@ class VisSeeder:
         self.vgraph_admat = []
         self.seed_points = []
         self.regions = []
+        self.region_groups = []
 
     def run(self):
         done = False
@@ -53,12 +57,38 @@ class VisSeeder:
 
             #solve MHS
             _, mhs_idx = solve_max_independent_set_integer(ad_mat)
-            self.seed_points +=[points[mhs_idx, :]]
+            self.seed_points +=[points[mhs_idx, :].squeeze()]
             if self.vb : print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Found ', len(mhs_idx), ' hidden points')
 
             #grow the regions with obstacles
-            regions_step = self.iris_w_obstacles(points[mhs_idx, :], shrink_regions(self.regions, offset_fraction=0.25))
+            regions_step = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), shrink_regions(self.regions, offset_fraction=0.25))
             self.regions += regions_step
-
+            self.region_groups.append(regions_step)
+            it+=1
         return self.regions
     
+    def save_state(self, path):
+        region_groups_A = [[r.A() for r in g] for g in self.region_groups] 
+        region_groups_b = [[r.b() for r in g] for g in self.region_groups]
+        data = {
+        'vg':self.vgraph_points,
+        'vad':self.vgraph_admat,
+        'sp':self.seed_points,
+        'ra':region_groups_A,
+        'rb':region_groups_b}
+        with open(path+".pkl", 'wb') as f:
+            pickle.dump(data,f)
+
+    def load_state(self, path):
+        with open(path,'rb') as f:
+            data = pickle.load(f)
+
+        self.region_groups = [[HPolyhedron(a,b) for a,b in zip(ga, gb)] for ga, gb in zip(data['ra'], data['rb'])]    
+        self.regions = []
+        for g in self.region_groups:
+            for r in g:
+                self.regions.append(r)
+        self.vgraph_points = data['vg']
+        self.vgraph_admat = data['vad']
+        self.seed_points = data['sp']
+        

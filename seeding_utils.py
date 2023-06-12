@@ -14,3 +14,14 @@ def point_in_regions(pt, regions):
         if r.PointInSet(pt.reshape(-1,1)):
             return True
     return False
+
+def vis_reg(point, other, world, regions):
+    if not world.visible(point, other):
+        return False
+    else:
+        tval = np.linspace(0, 1, 40)
+        for t in tval:
+            pt = (1-t)*point + t* other
+            if point_in_regions(pt, regions):
+                return False
+    return True

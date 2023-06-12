@@ -99,11 +99,11 @@ n = 450
 seed = 0
 
 fig, axs = plt.subplots(nrows = 1, ncols=3, figsize = (15, 8))
-names = ['time [s]', 'num regions', 'coverage cfree']
+names = ['time [s]', 'number hidden points / regions', 'coverage cfree']
 for idx, ax in enumerate(axs):
 	ax.set_xticks(np.arange(len(small_polys)))
 	ax.set_xticklabels([extract_string_before_first_digit(s[:-14]) for s in small_polys], rotation = 45,  ha='right')
-	ax.set_ylabel(names[idx])
+	ax.set_ylabel(names[idx], fontsize = 14)
 	data_integer = [0]*len(small_polys)
 	data_sdp = [0]*len(small_polys)
 	data_greedy = [0]*len(small_polys)

@@ -150,10 +150,14 @@ class World():
 			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
 			ax.plot(v[:,0], v[:,1], alpha = 0.1, c = 'k')
 
-	def plot_HPoly(self, ax, HPoly):
+	def plot_HPoly(self, ax, HPoly, color = None):
 		v = sorted_vertices(VPolytope(HPoly)).T#s
 		v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
-		p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7)
+		if color is None:
+			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7)
+		else:
+			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7, c = color)
+
 		ax.fill(v[:,0], v[:,1], alpha = 0.5, c = p[0].get_color())
 
 	def plot_obstacles(self, ax):
