@@ -78,7 +78,9 @@ VS = VisSeeder(N = 200,
 			   build_vgraph = vgraph_builder,
 			   iris_w_obstacles = iris_w_obstacles,
 			   verbose = True,
-	       		)
+			   logger = logger
+	       	)
+
 regions = VS.run()
 for g in VS.region_groups:
 	rnd_artist = ax.plot([0,0],[0,0], alpha = 0)

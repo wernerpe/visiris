@@ -17,8 +17,11 @@ class VisSeeder:
                  build_vgraph = None,
                  iris_w_obstacles = None,
                  verbose = False,
+                 logger = None
                  ):
         
+        self.logger = logger
+        if self.logger is not None: self.logger.set_t0()
         self.vb = verbose
         self.sample_cfree = sample_cfree
         self.build_vgraph = build_vgraph
@@ -64,6 +67,9 @@ class VisSeeder:
             regions_step = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), shrink_regions(self.regions, offset_fraction=0.25))
             self.regions += regions_step
             self.region_groups.append(regions_step)
+
+            if self.logger is not None: self.logger.log(self, it)
+
             it+=1
         return self.regions
     
