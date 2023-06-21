@@ -5,6 +5,8 @@ from pydrake.all import (MathematicalProgram, SolverOptions,
 
 def solve_max_independent_set_integer(adj_mat):
 	n = adj_mat.shape[0]
+	if n == 1:
+		return 1, np.array([0])
 	prog = MathematicalProgram()
 	v = prog.NewBinaryVariables(n)
 	prog.AddLinearCost(-np.sum(v))

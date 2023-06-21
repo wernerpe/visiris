@@ -27,26 +27,59 @@ def generate_regions(pts, Aobs, Bobs, Adom, bdom):
 			print('Iris failed at ', pt)
 	return regions, succ_seed_pts
 
-def generate_regions_multi_threading(pts, obstacles, domain):
+def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage = None, coverage_threshold = None):
+	is_full = False
 	regions = []
 	succ_seed_pts = []
 	A_obs = [r.A() for r in obstacles]
 	b_obs = [r.b() for r in obstacles]
 	A_dom = domain.A()
 	b_dom = domain.b()
-	chunks = np.array_split(pts, mp.cpu_count())
-	pool = mp.Pool(processes=mp.cpu_count())
+	if len(pts.reshape(-1,2))==1:
+		regions, succ_seed_pts = generate_regions(pts.reshape(1,2), A_obs, b_obs, A_dom, b_dom)
+		return regions, succ_seed_pts, is_full
+	
 	genreg_hand = partial(generate_regions,
-		          		  Aobs = A_obs,
-					      Bobs = b_obs,
-					      Adom = A_dom,
-					      bdom = b_dom
-						  )
-	results = pool.map(genreg_hand, chunks)
-	for r in results:
-		regions += r[0]
-		succ_seed_pts += r[1]
-	return regions, succ_seed_pts
+								Aobs = A_obs,
+								Bobs = b_obs,
+								Adom = A_dom,
+								bdom = b_dom
+								)
+	#allow batched region generation to terminate early
+	if coverage_threshold is not None and estimate_coverage is not None:
+		nr_pts=len(pts)
+		checks_per_n_regions = 10
+		nr_checks = int(np.floor(nr_pts/checks_per_n_regions))
+		chunk_list = []
+		#split  into batches 
+		for chunk_id in range(nr_checks):
+			start_idx = checks_per_n_regions*chunk_id
+			end_idx = checks_per_n_regions*(chunk_id+1)
+			chunks = np.array_split(pts[start_idx:end_idx,:], mp.cpu_count()-5)
+			chunk_list.append(chunks)
+		chunk_list.append(np.array_split(pts[nr_checks*checks_per_n_regions:,:], mp.cpu_count()-5))
+		
+		for c in chunk_list:
+			pool = mp.Pool(processes=mp.cpu_count()-5)
+			results = pool.map(genreg_hand, c)
+			for r in results:
+				regions += r[0]
+				succ_seed_pts += r[1]
+			current_coverage_est = estimate_coverage(regions)
+			if current_coverage_est>= coverage_threshold:
+				#space is already full, stop generating more regions
+				return regions, succ_seed_pts, True
+			
+		return regions, succ_seed_pts, is_full
+
+	else:
+		chunks = np.array_split(pts, mp.cpu_count()-5)
+		pool = mp.Pool(processes=mp.cpu_count()-5)
+		results = pool.map(genreg_hand, chunks)
+		for r in results:
+			regions += r[0]
+			succ_seed_pts += r[1]
+		return regions, succ_seed_pts, is_full
 
 def build_region_obstacles(regions):
 	if regions is not None:

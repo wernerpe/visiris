@@ -21,7 +21,7 @@ class VisSeeder:
                  ):
         
         self.logger = logger
-        if self.logger is not None: self.logger.set_t0()
+        if self.logger is not None: self.logger.time()
         self.vb = verbose
         self.sample_cfree = sample_cfree
         self.build_vgraph = build_vgraph
@@ -30,7 +30,7 @@ class VisSeeder:
         self.alpha = alpha
         self.eps = eps
         self.maxit = max_iterations
-        self.M = int(np.log(alpha)/np.log(1-eps) + 0.5)
+        self.M = int(np.log(1-(1-alpha)**(1/N))/np.log((1-eps)) + 0.5)
         if self.vb: 
             print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] GuardInsertion attempts M:', str(self.M))
             print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisSeeder] {1-self.alpha:.2f} probability that unseen region is less than {100*eps:.1f} '%' of Cfree ")
@@ -53,23 +53,28 @@ class VisSeeder:
                 if self.vb : print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Bernoulli test failed')
                 done = True 
                 break
+            if self.logger is not None: self.logger.time()
 
             #build visibility graph
-            ad_mat = self.build_vgraph(points, self.regions)
+            self.sregs = shrink_regions(self.regions, offset_fraction=0.25)
+            ad_mat = self.build_vgraph(points, self.sregs)
             self.vgraph_admat.append(ad_mat)
+            if self.logger is not None: self.logger.time()
 
             #solve MHS
             _, mhs_idx = solve_max_independent_set_integer(ad_mat)
             self.seed_points +=[points[mhs_idx, :].squeeze()]
             if self.vb : print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Found ', len(mhs_idx), ' hidden points')
+            if self.logger is not None: self.logger.time()
 
             #grow the regions with obstacles
-            regions_step = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), shrink_regions(self.regions, offset_fraction=0.25))
+            regions_step, is_full_iris = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), self.sregs)
             self.regions += regions_step
             self.region_groups.append(regions_step)
-
+            if self.logger is not None: self.logger.time()
             if self.logger is not None: self.logger.log(self, it)
-
+            if is_full_iris:
+                return self.regions
             it+=1
         return self.regions
     
