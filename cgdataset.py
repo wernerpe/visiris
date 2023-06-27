@@ -172,6 +172,21 @@ class World():
 				points.append(point)
 		return np.array(points)
 
+	def sample_cfree_distance(self, n, eps, tries = 10):
+		points = []
+		while len(points) < n:
+			point = np.random.uniform(low=self.bounds[0:2], high=self.bounds[2:4])
+			too_close = False
+			if self.cfree_polygon.contains(shapely.Point(point)):
+				for _ in range(tries):
+					r = 2*eps*(np.random.rand(2)-0.5)
+					if not self.cfree_polygon.contains(shapely.Point(point+r)):
+						too_close = True
+						break
+				if not too_close:
+					points.append(point)
+		return np.array(points)
+	
 	def visible(self, p, q):
 		# Returns True if p and q can see each other
 		# If either p or q are in an obstacle, returns False

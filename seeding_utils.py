@@ -15,6 +15,16 @@ def point_in_regions(pt, regions):
             return True
     return False
 
+def point_near_regions(pt, regions, tries = 10, eps = 0.1):
+    
+    for _ in range(tries):
+        n = 2*eps*(np.random.rand(len(pt))-0.5)
+        checkpt = pt+n
+        for r in regions:
+            if r.PointInSet(checkpt.reshape(-1,1)):
+                return True
+    return False
+
 def vis_reg(point, other, world, regions):
     if not world.visible(point, other):
         return False

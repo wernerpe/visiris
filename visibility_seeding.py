@@ -68,7 +68,7 @@ class VisSeeder:
             if self.logger is not None: self.logger.time()
 
             #grow the regions with obstacles
-            regions_step, is_full_iris = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), self.sregs)
+            regions_step, is_full_iris = self.iris_w_obstacles(points[mhs_idx, :].squeeze(), self.sregs, self.regions)
             self.regions += regions_step
             self.region_groups.append(regions_step)
             if self.logger is not None: self.logger.time()

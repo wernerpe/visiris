@@ -17,9 +17,11 @@ size = 5
 alpha = 0.05
 eps = 0.1
 # N = 300
-for seed in [1,2,3,4,5,6,7,8, 9, 10]:
-    for N in [1, 300]:
-        for boxes in [7,9,11]:
+for boxes in [9,11]:
+    for seed in [6,7]:
+        for N in [1, 30, 300]:#[1, 30, 300]:
+            if boxes == 9 and seed == 6:
+                break
             world = GridWorld(boxes, side_len=size, seed = seed)
             # fig,ax = plt.subplots(figsize = (10,10))
             # ax.set_xlim((-size, size))
@@ -36,7 +38,8 @@ for seed in [1,2,3,4,5,6,7,8, 9, 10]:
                         in_col = False
                         for _ in range(10):
                             r = point + 0.2*(np.random.rand(2)-0.5)
-                            if point_in_regions(point, regions):
+                            #was bug in initial run (forgot +r)
+                            if point_in_regions(point+r, regions):
                                 in_col = True
                                 bt_tries += 1
                                 break
@@ -100,9 +103,9 @@ for seed in [1,2,3,4,5,6,7,8, 9, 10]:
                 union_of_Polyhedra = cascaded_union(shapely_regions)
                 return union_of_Polyhedra.area/world.cfree_polygon.area
 
-            def iris_w_obstacles(points, region_obstacles):
+            def iris_w_obstacles(points, region_obstacles, old_regions = None):
                 if N>1:
-                    regions, _, is_full = generate_regions_multi_threading(points, world.obstacles + region_obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps)
+                    regions, _, is_full = generate_regions_multi_threading(points, world.obstacles + region_obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs = old_regions)
                 else:
                     #if N=1 coverage estimate happens at every step
                     regions, _, is_full = generate_regions_multi_threading(points, world.obstacles + region_obstacles, world.iris_domain)
@@ -112,7 +115,7 @@ for seed in [1,2,3,4,5,6,7,8, 9, 10]:
             VS = VisSeeder(N = N,
                         alpha = alpha,
                         eps = eps,
-                        max_iterations = 300,
+                        max_iterations = 400,
                         sample_cfree = sample_cfree_handle,
                         build_vgraph = vgraph_builder,
                         iris_w_obstacles = iris_w_obstacles,
