@@ -140,6 +140,16 @@ class World():
 			v = VPolytope(tri).vertices().T
 			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
 			ax.fill(v[:,0], v[:,1], alpha = 1.0, c = 'k')
+	
+	def plot_cfree_offset(self, ax):
+		#shapely.plotting.plot_polygon(self.cfree_polygon, ax=ax, add_points=False)
+		p = list(self.offset_polys.values())[0]
+		shapely.plotting.plot_polygon(p, add_points=False, color='r')
+
+		for tri in self.obstacle_triangles:
+			v = VPolytope(tri).vertices().T
+			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
+			ax.fill(v[:,0], v[:,1], alpha = 1.0, c = 'k')
 
 	def plot_boundary(self, ax):
 		shapely.plotting.plot_polygon(self.outer_boundary, ax=ax, facecolor=(1,1,1,0), edgecolor="red", add_points=False)
@@ -150,15 +160,15 @@ class World():
 			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
 			ax.plot(v[:,0], v[:,1], alpha = 0.1, c = 'k')
 
-	def plot_HPoly(self, ax, HPoly, color = None):
+	def plot_HPoly(self, ax, HPoly, color = None, zorder = 0):
 		v = sorted_vertices(VPolytope(HPoly)).T#s
 		v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
 		if color is None:
-			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7)
+			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7, zorder = zorder)
 		else:
-			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7, c = color)
+			p = ax.plot(v[:,0], v[:,1], linewidth = 2, alpha = 0.7, c = color, zorder = zorder)
 
-		ax.fill(v[:,0], v[:,1], alpha = 0.5, c = p[0].get_color())
+		ax.fill(v[:,0], v[:,1], alpha = 0.5, c = p[0].get_color(), zorder = zorder)
 
 	def plot_obstacles(self, ax):
 		for poly in self.obstacle_polygons:
@@ -172,20 +182,19 @@ class World():
 				points.append(point)
 		return np.array(points)
 
+	def build_offset_cfree(self, eps):
+		self.offset_polys = {}
+		self.offset_polys[eps] = self.cfree_polygon.buffer(eps)
+
 	def sample_cfree_distance(self, n, eps, tries = 10):
+		cfree_polygon_offset = self.offset_polys[eps]
 		points = []
 		while len(points) < n:
 			point = np.random.uniform(low=self.bounds[0:2], high=self.bounds[2:4])
-			too_close = False
-			if self.cfree_polygon.contains(shapely.Point(point)):
-				for _ in range(tries):
-					r = 2*eps*(np.random.rand(2)-0.5)
-					if not self.cfree_polygon.contains(shapely.Point(point+r)):
-						too_close = True
-						break
-				if not too_close:
-					points.append(point)
+			if cfree_polygon_offset.contains(shapely.Point(point)):
+				points.append(point)
 		return np.array(points)
+	
 	
 	def visible(self, p, q):
 		# Returns True if p and q can see each other

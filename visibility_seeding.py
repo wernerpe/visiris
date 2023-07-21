@@ -17,7 +17,8 @@ class VisSeeder:
                  build_vgraph = None,
                  iris_w_obstacles = None,
                  verbose = False,
-                 logger = None
+                 logger = None,
+                 region_pullback = 0.05
                  ):
         
         self.logger = logger
@@ -30,6 +31,7 @@ class VisSeeder:
         self.alpha = alpha
         self.eps = eps
         self.maxit = max_iterations
+        self.region_pullback = region_pullback
         self.M = int(np.log(1-(1-alpha)**(1/N))/np.log((1-eps)) + 0.5)
         if self.vb: 
             print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] GuardInsertion attempts M:', str(self.M))
@@ -47,16 +49,17 @@ class VisSeeder:
         while it<self.maxit:
 
             #sample N points in cfree
-            points, b_test_is_full = self.sample_cfree(self.N, self.M, self.regions)
+            points, b_test_is_full = self.sample_cfree(self.N, 10*self.M, self.regions)
             self.vgraph_points.append(points)
             if b_test_is_full:
                 if self.vb : print(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Bernoulli test failed')
+                self.logger.log_string(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Bernoulli test failed')
                 done = True 
-                break
+                return self.regions
             if self.logger is not None: self.logger.time()
 
             #build visibility graph
-            self.sregs = shrink_regions(self.regions, offset_fraction=0.25)
+            self.sregs = shrink_regions(self.regions, offset_fraction=self.region_pullback)
             ad_mat = self.build_vgraph(points, self.sregs)
             self.vgraph_admat.append(ad_mat)
             if self.logger is not None: self.logger.time()
@@ -74,8 +77,10 @@ class VisSeeder:
             if self.logger is not None: self.logger.time()
             if self.logger is not None: self.logger.log(self, it)
             if is_full_iris:
+                if self.logger is not None: self.logger.log_string(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Coverage met, terminated on Iris step')
                 return self.regions
             it+=1
+        if self.logger is not None: self.logger.log_string(strftime("[%H:%M:%S] ", gmtime()) +'[VisSeeder] Maxit reached')
         return self.regions
     
     def save_state(self, path):

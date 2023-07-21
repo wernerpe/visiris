@@ -27,6 +27,50 @@ def generate_regions(pts, Aobs, Bobs, Adom, bdom):
 			print('Iris failed at ', pt)
 	return regions, succ_seed_pts
 
+#eliminates region obstacles for last n iterations
+def generate_regions_regobs(pts, Aobs, Bobs, Aregobs, Bregobs, Adom, bdom, noregits =0):
+	iris_options = IrisOptions()
+	iris_options.require_sample_point_is_contained = True
+	iris_options.iteration_limit = 5
+	iris_options.termination_threshold = -1
+	iris_options.relative_termination_threshold = 0.05
+
+	iris_options_post = IrisOptions()
+	iris_options_post.require_sample_point_is_contained = True
+	iris_options_post.iteration_limit = noregits
+	iris_options_post.termination_threshold = -1
+	iris_options_post.relative_termination_threshold = 0.05
+
+	obstacles = [HPolyhedron(A, b) for A,b in zip(Aobs,Bobs)]
+	regobstacles = [HPolyhedron(A, b) for A,b in zip(Aregobs,Bregobs)]
+	domain = HPolyhedron(Adom, bdom)
+	regions = []
+	succ_seed_pts = []
+	for idx, pt in enumerate(pts):
+		print(time.strftime("[%H:%M:%S] ", time.gmtime()), idx+1, '/', len(pts))
+		try:
+			reg_init = Iris(obstacles+regobstacles, pt.reshape(-1,1), domain, iris_options)
+			if noregits ==0:
+				print('skip')
+				regions.append(reg_init)
+				succ_seed_pts.append(pt)
+			else:
+				E = reg_init.MaximumVolumeInscribedEllipsoid()
+				#shrink ellipsoid around center to avoid bad numerics aorund convergence
+				Eshr = Hyperellipsoid(E.A()*10, E.center())
+				iris_options_post.initial_ellipsoid = Eshr
+				reg = Iris(obstacles, pt.reshape(-1,1), domain, iris_options_post)
+				if reg.A().shape[0] == domain.A().shape[0]:
+					#point leaves region on first iteration, catch error by replacing region with previous
+					regions.append(reg_init)
+					succ_seed_pts.append(pt)
+				else:
+					regions.append(reg)
+					succ_seed_pts.append(pt)
+		except:
+			print('Iris failed at ', pt)
+	return regions, succ_seed_pts
+
 def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None):
 	is_full = False
 	regions = []
@@ -37,6 +81,8 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 	b_dom = domain.b()
 	if len(pts.reshape(-1,2))==1:
 		regions, succ_seed_pts = generate_regions(pts.reshape(1,2), A_obs, b_obs, A_dom, b_dom)
+		cov = estimate_coverage(regions+old_regs)
+		is_full = coverage_threshold<=cov
 		return regions, succ_seed_pts, is_full
 	
 	genreg_hand = partial(generate_regions,
@@ -44,6 +90,65 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 								Bobs = b_obs,
 								Adom = A_dom,
 								bdom = b_dom
+								)
+	#allow batched region generation to terminate early
+	if coverage_threshold is not None and estimate_coverage is not None:
+		nr_pts=len(pts)
+		checks_per_n_regions = 1
+		nr_checks = int(np.floor(nr_pts/checks_per_n_regions))
+		chunk_list = []
+		#split  into batches 
+		for chunk_id in range(nr_checks):
+			start_idx = checks_per_n_regions*chunk_id
+			end_idx = checks_per_n_regions*(chunk_id+1)
+			chunks = np.array_split(pts[start_idx:end_idx,:], mp.cpu_count()-5)
+			chunk_list.append(chunks)
+		chunk_list.append(np.array_split(pts[nr_checks*checks_per_n_regions:,:], mp.cpu_count()-5))
+		
+		for c in chunk_list:
+			pool = mp.Pool(processes=mp.cpu_count()-5)
+			results = pool.map(genreg_hand, c)
+			for r in results:
+				regions += r[0]
+				succ_seed_pts += r[1]
+			current_coverage_est = estimate_coverage(regions+old_regs)
+			if current_coverage_est>= coverage_threshold:
+				#space is already full, stop generating more regions
+				return regions, succ_seed_pts, True
+			
+		return regions, succ_seed_pts, is_full
+
+	else:
+		chunks = np.array_split(pts, mp.cpu_count()-5)
+		pool = mp.Pool(processes=mp.cpu_count()-5)
+		results = pool.map(genreg_hand, chunks)
+		for r in results:
+			regions += r[0]
+			succ_seed_pts += r[1]
+		return regions, succ_seed_pts, is_full
+
+def generate_regions_multi_threading_regobs(pts, obstacles, region_obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, noregits = 1):
+	is_full = False
+	regions = []
+	succ_seed_pts = []
+	A_obs = [r.A() for r in obstacles]
+	b_obs = [r.b() for r in obstacles]
+	A_obs_reg = [r.A() for r in region_obstacles]
+	b_obs_reg = [r.b() for r in region_obstacles]
+	A_dom = domain.A()
+	b_dom = domain.b()
+	if len(pts.reshape(-1,2))==1:
+		regions, succ_seed_pts = generate_regions_regobs(pts.reshape(1,2), A_obs, b_obs, A_obs_reg, b_obs_reg, A_dom, b_dom, noregits=noregits)
+		return regions, succ_seed_pts, is_full
+	
+	genreg_hand = partial(generate_regions_regobs,
+								Aobs = A_obs,
+								Bobs = b_obs,
+								Aregobs= A_obs_reg,
+								Bregobs= b_obs_reg,
+								Adom = A_dom,
+								bdom = b_dom,
+								noregits=noregits
 								)
 	#allow batched region generation to terminate early
 	if coverage_threshold is not None and estimate_coverage is not None:
@@ -61,6 +166,8 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 		
 		for c in chunk_list:
 			pool = mp.Pool(processes=mp.cpu_count()-5)
+
+			#genreg_hand(c)
 			results = pool.map(genreg_hand, c)
 			for r in results:
 				regions += r[0]

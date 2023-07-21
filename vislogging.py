@@ -11,11 +11,11 @@ import time
 
 
 class Logger:
-    def __init__(self, world, world_name, seed, N, alpha, eps, plt_time = 10):
+    def __init__(self, world, world_name, config, seed, N, alpha, eps, plt_time = 10):
         root = "/home/peter/git/visiris"
         self.world = world
         self.timings = []
-        self.name_exp ="experiment_" +world_name+f"_{seed}_{N}_{alpha:.3f}_{eps:.3f}"
+        self.name_exp ="experiment_" +world_name+f"_{seed}_{N}_{alpha:.3f}_{eps:.3f}" + config
         self.expdir = root+"/logs/"+self.name_exp
         self.t_last_plot = -100
         self.plt_time = plt_time
@@ -37,6 +37,10 @@ class Logger:
     
     def time(self,):
         self.timings.append(time.time())
+
+    def log_string(self, string):
+        with open(self.summary_file, 'a') as f:
+            f.write(string +'\n')
 
     def log(self, vs: VisSeeder, iteration):
         #self.timings.append(time.time())
@@ -68,12 +72,18 @@ class Logger:
             pickle.dump(data,f)
 
         #write summary
+	
         shapely_regions = []
         for r in vs.regions:
             verts = sorted_vertices(VPolytope(r))
             shapely_regions.append(shapely.Polygon(verts.T))
         union_of_Polyhedra = cascaded_union(shapely_regions)
+        int_poly = list(self.world.offset_polys.values())[0].intersection(union_of_Polyhedra)
+        
         coverage_experiment = union_of_Polyhedra.area/self.world.cfree_polygon.area
+        
+        coverage_sample_area_experiment = int_poly.area/list(self.world.offset_polys.values())[0].area
+
         summary=[f"-------------------------------------------\n",
                  f"ITERATION: {iteration}\n"
                  f"number of regions step {len(vs.region_groups[-1])}\n",
@@ -81,7 +91,8 @@ class Logger:
                  f"tstep {t_step:.3f}, t_total {t_total:.3f}\n"
                  f"tsample {t_sample:.3f}, t_visgraph {t_visgraph:.3f}, t_mhs {t_mhs:.3f}, t_regions {t_regions:.3f}\n"
                  f"number of regions total {len(vs.regions)}\n"
-                 f"coverage {coverage_experiment:.4f}\n"]
+                 f"coverage {coverage_experiment:.4f}\n",
+                 f"coverageS {coverage_sample_area_experiment:.4f}\n"]
         
         with open(self.summary_file, 'a') as f:
             for l in summary:
@@ -91,19 +102,20 @@ class Logger:
             self.t_last_plot = t_total
             #save picture
             fig, ax = plt.subplots(figsize = (10,10))
-            self.world.plot_cfree(ax)
+            self.world.plot_cfree_offset(ax)
+            itz = 0
             for g,s in zip(vs.region_groups, vs.seed_points):
                 rnd_artist = ax.plot([0,0],[0,0], alpha = 0)
                 for r in g:
-                    self.world.plot_HPoly(ax, r, color =rnd_artist[0].get_color())
-                ax.scatter(s.reshape(-1,2)[:,0], s.reshape(-1,2)[:,1], c =rnd_artist[0].get_color())
-
-            pts, full = vs.sample_cfree(100,vs.M, vs.regions)
+                    self.world.plot_HPoly(ax, r, color =rnd_artist[0].get_color(), zorder = itz)
+                ax.scatter(s.reshape(-1,2)[:,0], s.reshape(-1,2)[:,1], c =rnd_artist[0].get_color(), zorder = itz+1)
+                itz+=1
+            pts, full = vs.sample_cfree(100, vs.M, vs.regions)
             ax.scatter(pts[:,0], pts[:,1], c = 'k')
             ax.set_title(f"iteration {iteration}")
             plt.savefig(self.expdir+f"/images/img_it{iteration}.png")
 
-            plt.close('all')
+            #plt.close('all')
 
 
 class Logger3D:

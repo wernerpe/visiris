@@ -17,17 +17,15 @@ size = 5
 alpha = 0.05
 eps = 0.1
 # N = 300
-for boxes in [9,11]:
-    for seed in [6,7]:
+for boxes in [2,3,4,5]:
+    for seed in [6, 7, 8]:
         for N in [1, 30, 300]:#[1, 30, 300]:
-            if boxes == 9 and seed == 6:
-                break
             world = GridWorld(boxes, side_len=size, seed = seed)
-            # fig,ax = plt.subplots(figsize = (10,10))
-            # ax.set_xlim((-size, size))
-            # ax.set_ylim((-size, size))
-            # world.plot_cfree(ax)
-            # plt.pause(0.01)
+            fig,ax = plt.subplots(figsize = (10,10))
+            ax.set_xlim((-size, size))
+            ax.set_ylim((-size, size))
+            world.plot_cfree_inflated(ax)
+            plt.pause(0.01)
             def sample_cfree_handle(n, m, regions=None):
                 points = np.zeros((n,2))
                 if regions is None: regions = []		
@@ -50,29 +48,7 @@ for boxes in [9,11]:
                                 break
                     points[i] = point
                 return points, False
-            
-            # def sample_cfree_handle(n, m, regions=None):
-            #     points = np.zeros((n,2))
-            #     if regions is None: regions = []		
-            #     for i in range(n):
-            #         bt_tries = 0
-            #         while bt_tries<m:
-            #             point = world.sample_cfree(1)[0]
-            #             for _ in range(10):
-            #                 r = 0.05(np.random.rand(2)-0.5)
-            #             if point_in_regions(point, regions):
-            #                 bt_tries += 1
-            #                 if bt_tries == m:
-            #                     return points, True 
-            #             else:
-            #                 break
-            #         points[i] = point
-            #     return points, False
-
-            # pts, _ = sample_cfree_handle(100, 50, None)
-            # ax.scatter(pts[:,0], pts[:,1])
-            # plt.show()
-
+        
             def vgraph_builder(points, regions):
                 n = len(points)
                 adj_mat = lil_matrix((n,n))
@@ -84,17 +60,6 @@ for boxes in [9,11]:
                             adj_mat[i,j] = adj_mat[j,i] = 1
                 return adj_mat.toarray()
 
-            # pts, _ = sample_cfree_handle(100, 50, None)
-            # ad = vgraph_builder(pts, [])
-            # id1, id2 = np.where(ad==1)
-            # edges = []
-            # for i1, i2 in zip(id1, id2):
-            #     edges.append([[pts[i1,0], pts[i2,0]], [pts[i1,1], pts[i2,1]]])
-            # ax.scatter(pts[:,0], pts[:,1])
-            # for e in edges:
-            #     ax.plot(e[0], e[1], linewidth = 0.5, c = 'k')
-
-            # plt.show()
             def compute_coverage(regions):
                 shapely_regions = []
                 for r in regions:

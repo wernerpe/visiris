@@ -44,3 +44,58 @@ def load_experiment(experiment_path, world_name, world, n, seed):
 
     timings = [tgraphgen, dict['tind'], dict['treg']]
     return points, adj_mat, edge_endpoints, dict['verts'], regions, timings
+
+
+import random
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+# def generate_random_colors(n):
+#     # Get a list of all available named colors in matplotlib
+#     named_colors = list(mcolors.CSS4_COLORS.keys())
+#     total_named_colors = len(named_colors)
+
+#     # Check if the requested number of colors is greater than the total available named colors
+#     if n > total_named_colors:
+#         print(f"Warning: Requested number of colors ({n}) is greater than the total available named colors ({total_named_colors}).")
+#         print("Using random colors instead.")
+
+#         # Generate random RGB colors
+#         colors = [(random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)) for _ in range(n)]
+#     else:
+#         # Shuffle the named colors list
+#         random.seed(2)
+#         random.shuffle(named_colors)
+
+#         # Take the first N colors from the shuffled list
+#         selected_colors = named_colors[:n]
+
+#         # Convert the named colors to RGB values
+#         colors = [mcolors.to_rgb(color) for color in selected_colors]
+
+#     return colors
+
+def generate_random_colors(n):
+    # Get a list of all available named colors in matplotlib
+    #named_colors = list(mcolors.CSS4_COLORS.keys())
+    #total_named_colors = len(named_colors)
+
+    # Check if the requested number of colors is greater than the total available named colors
+    #if n > total_named_colors:
+    #print(f"Warning: Requested number of colors ({n}) is greater than the total available named colors ({total_named_colors}).")
+    #print("Using random colors instead.")
+
+    # Generate random RGB colors
+    colors = [(random.uniform(0, 0.8), random.uniform(0, 0.8), random.uniform(0, 1)) for _ in range(n)]
+    # else:
+    #     # Shuffle the named colors list
+    #     random.seed(2)
+    #     random.shuffle(named_colors)
+
+    #     # Take the first N colors from the shuffled list
+    #     selected_colors = named_colors[:n]
+
+    #     # Convert the named colors to RGB values
+    #     colors = [mcolors.to_rgb(color) for color in selected_colors]
+
+    return colors

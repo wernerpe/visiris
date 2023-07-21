@@ -46,6 +46,8 @@ def get_visibility_graph(world_name, world, n, seed):
             pickle.dump({'verts':points, 'adj': adj_mat, 'edge_endpoints': edge_endpoints, 'world_gen_time': t1-t0, 'vis_graph_gen_time': t2-t1},f)
         return points, adj_mat, edge_endpoints, t1-t0, t2-t1
 
+
+
 def create_visibility_graph_w_region_obstacles(world, n, seed, regions = None, shrunken_regions = None):
     np.random.seed(seed)
     points = np.zeros((n,2))
