@@ -27,6 +27,31 @@ def generate_regions(pts, Aobs, Bobs, Adom, bdom):
 			print('Iris failed at ', pt)
 	return regions, succ_seed_pts
 
+def generate_regions_ellipses(pts, Aobs, Bobs, Aell, cell, Adom, bdom, maxiters=5):
+	assert len(pts)==len(Aell)
+	iris_options = IrisOptions()
+	iris_options.require_sample_point_is_contained = True
+	iris_options.iteration_limit = maxiters
+	iris_options.termination_threshold = -1
+	iris_options.relative_termination_threshold = 0.05
+	obstacles = [HPolyhedron(A, b) for A,b in zip(Aobs,Bobs)]
+	domain = HPolyhedron(Adom, bdom)
+	regions = []
+	succ_seed_pts = []
+	for idx, pt in enumerate(pts):
+		print(time.strftime("[%H:%M:%S] ", time.gmtime()), idx+1, '/', len(pts))
+		try:
+			iris_options.initial_ellipsoid = Hyperellipsoid(Aell[idx],cell[idx])
+			reg = Iris(obstacles, pt.reshape(-1,1), domain, iris_options)
+			if np.array_equal(domain.A(), reg.A()):
+				iris_options.initial_ellipsoid = Hyperellipsoid(Aell[idx],pt.reshape(-1,1))
+				reg = Iris(obstacles, pt.reshape(-1,1), domain, iris_options)
+			regions.append(reg)
+			succ_seed_pts.append(pt)
+		except:
+			print('Iris failed at ', pt)
+	return regions, succ_seed_pts
+
 #eliminates region obstacles for last n iterations
 def generate_regions_regobs(pts, Aobs, Bobs, Aregobs, Bregobs, Adom, bdom, noregits =0):
 	iris_options = IrisOptions()
@@ -126,6 +151,72 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 			regions += r[0]
 			succ_seed_pts += r[1]
 		return regions, succ_seed_pts, is_full
+	
+def generate_regions_ellipses_multi_threading(pts, seed_ellipses, obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, maxiters=5):
+	is_full = False
+	regions = []
+	succ_seed_pts = []
+	A_obs = [r.A() for r in obstacles]
+	b_obs = [r.b() for r in obstacles]
+	A_ell = [s.A() for s in seed_ellipses]
+	c_ell = [s.center() for s in seed_ellipses]
+	A_dom = domain.A()
+	b_dom = domain.b()
+	#if len(pts.reshape(-1,2))==1:
+	for pt, Aell, cell in zip(pts, A_ell, c_ell):
+		region, succ_seed_pt = generate_regions_ellipses(pt.reshape(1,2), A_obs, b_obs, [Aell], [cell], A_dom, b_dom, maxiters)
+		regions += region
+		cov = estimate_coverage(regions+old_regs)
+		is_full = coverage_threshold<=cov
+		#regions.append(region)
+		succ_seed_pts.append(succ_seed_pt)
+		if is_full:
+			return regions, succ_seed_pts, is_full
+	return regions, succ_seed_pts, is_full
+	
+	# genreg_hand = partial(generate_regions_ellipses,
+	# 							Aobs = A_obs,
+	# 							Bobs = b_obs,
+	# 							A_ell = A_ell,
+	# 							c_ell = c_ell,
+	# 							Adom = A_dom,
+	# 							bdom = b_dom
+	# 							)
+	# #allow batched region generation to terminate early
+	# if coverage_threshold is not None and estimate_coverage is not None:
+	# 	nr_pts=len(pts)
+	# 	checks_per_n_regions = 1
+	# 	nr_checks = int(np.floor(nr_pts/checks_per_n_regions))
+	# 	chunk_list = []
+	# 	#split  into batches 
+	# 	for chunk_id in range(nr_checks):
+	# 		start_idx = checks_per_n_regions*chunk_id
+	# 		end_idx = checks_per_n_regions*(chunk_id+1)
+	# 		chunks = np.array_split(pts[start_idx:end_idx,:], mp.cpu_count()-5)
+	# 		chunk_list.append(chunks)
+	# 	chunk_list.append(np.array_split(pts[nr_checks*checks_per_n_regions:,:], mp.cpu_count()-5))
+		
+	# 	for c in chunk_list:
+	# 		pool = mp.Pool(processes=mp.cpu_count()-5)
+	# 		results = pool.map(genreg_hand, c)
+	# 		for r in results:
+	# 			regions += r[0]
+	# 			succ_seed_pts += r[1]
+	# 		current_coverage_est = estimate_coverage(regions+old_regs)
+	# 		if current_coverage_est>= coverage_threshold:
+	# 			#space is already full, stop generating more regions
+	# 			return regions, succ_seed_pts, True
+			
+	# 	return regions, succ_seed_pts, is_full
+
+	# else:
+	# 	chunks = np.array_split(pts, mp.cpu_count()-5)
+	# 	pool = mp.Pool(processes=mp.cpu_count()-5)
+	# 	results = pool.map(genreg_hand, chunks)
+	# 	for r in results:
+	# 		regions += r[0]
+	# 		succ_seed_pts += r[1]
+	# 	return regions, succ_seed_pts, is_full
 
 def generate_regions_multi_threading_regobs(pts, obstacles, region_obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, noregits = 1):
 	is_full = False

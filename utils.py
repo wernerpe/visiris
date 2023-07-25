@@ -99,3 +99,38 @@ def generate_random_colors(n):
     #     colors = [mcolors.to_rgb(color) for color in selected_colors]
 
     return colors
+
+
+import colorsys
+
+def generate_maximally_different_colors(n):
+    """
+    Generate n maximally different random colors for matplotlib.
+
+    Parameters:
+        n (int): Number of colors to generate.
+
+    Returns:
+        List of RGB tuples representing the random colors.
+    """
+    if n <= 0:
+        raise ValueError("Number of colors (n) must be greater than zero.")
+
+    # Define a list to store the generated colors
+    colors = []
+
+    # Generate n random hues, ensuring maximally different colors
+    hues = [i / n for i in range(n)]
+
+    # Shuffle the hues to get random order of colors
+    random.shuffle(hues)
+
+    # Convert each hue to RGB
+    for hue in hues:
+        # We keep saturation and value fixed at 0.9 and 0.8 respectively
+        saturation = 0.9
+        value = 0.8
+        rgb = colorsys.hsv_to_rgb(hue, saturation, value)
+        colors.append(rgb)
+
+    return colors

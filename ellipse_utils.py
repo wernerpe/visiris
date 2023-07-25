@@ -37,10 +37,11 @@ def get_seed_ellipse(pt1, pt2, eps = 0.01):
 
 def get_lj_ellipse(pts):
     if len(pts) ==1:
-        S = Hyperellipsoid.MakeHypersphere(1e-2, pts[0, :])
-        return S, S.A(), S.center()
-    if len(pts) ==2:
-        return get_seed_ellipse(pts[0,:].reshape(2,1), pts[1,:].reshape(2,1))
+        S = Hyperellipsoid.MakeHypersphere(1e-3, pts[0, :])
+        return S#, S.A(), S.center()
+    # if len(pts) ==2:
+    #     S, _,_ = get_seed_ellipse(pts[0,:].reshape(2,1), pts[1,:].reshape(2,1), eps= 0.01)
+    #     return S 
     dim = pts[0].shape[0]
     # pts = #[pt1, pt2]
     # for _ in range(2*dim):
@@ -62,13 +63,15 @@ def get_lj_ellipse(pts):
         for ci in c:
             prog.AddLinearEqualityConstraint(ci, 0 )
 
-    prog.AddPositiveSemidefiniteConstraint(A)
+    prog.AddPositiveSemidefiniteConstraint(A) # eps * identity
+    prog.AddPositiveSemidefiniteConstraint(10000*np.eye(dim)-A)
 
     sol = Solve(prog)
     if sol.is_success():
-        return switch_ellipse_description(sol.GetSolution(A), sol.GetSolution(b))
+        HE, _, _ =switch_ellipse_description(sol.GetSolution(A), sol.GetSolution(b))
+        return HE
     else:
-        return None, None, None
+        return None
 
 
 def plot_ellipse(ax, H, n_samples, color = None, linewidth = 1):
