@@ -56,8 +56,9 @@ class World():
 	#  - Obstacles as Shapely Polygons
 	#  - Obstacles as Triangles (HRep Polyhedra)
 	#  - C-Free as a Shapely Polygon
-	def __init__(self, fname, create_boundary_obstacles = True):
+	def __init__(self, fname, seed=1337, create_boundary_obstacles = True):
 		# Load the world specified by the given dataset
+		np.random.seed(seed)
 		with open(fname) as file:
 			data = json.load(file)
 			self.data = data

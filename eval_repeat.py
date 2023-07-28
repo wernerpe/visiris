@@ -29,18 +29,18 @@ favorite_polys = small_polys
 names = os.listdir('data/evalexamples')
 names.sort()
 
-eps_sample = -0.1
+eps_sample = -0.05
 seed = 1
 use_region_obstacles_iris = 1
-use_region_visibility_obstacles = 0
-region_pullback=0.0
+use_region_visibility_obstacles = 1
+region_pullback=0.25
 
-for instance in ['srpg_iso_aligned_mc0000172.instance.json', 'cheese102.instance.json']:#'srpg_iso_aligned_mc0000172.instance.json']:#, #,'fpg-poly_0000000060_h1.instance.json']: #'cheese102.instance.json', 
-	for seed in [2,3,4]:
-		for N in [1, 300]: 
+for instance in ["fpg-poly_0000000300_h5.instance.json"]:#,"srpg_iso_aligned_mc0000172.instance.json","fpg-poly_0000000060_h1.instance.json","fpg-poly_0000000070_h1.instance.json"]:#'srpg_iso_aligned_mc0000172.instance.json']:#, #,'fpg-poly_0000000060_h1.instance.json']: #'cheese102.instance.json', 
+	for seed in [2,3]:
+		for N in [1]: 
 			np.random.seed(seed)
 			world_name = instance #"cheese102.instance.json"#small_polys[1] #"cheese205.instance.json"#fpg-poly_0000000060_h1.instance.json"#"srpg_iso_aligned_mc0000172.instance.json"##"fpg-poly_0000000070_h1.instance.json"
-			world = World("./data/evalexamples/"+world_name)
+			world = World("./data/evalexamples/"+world_name, seed=seed)
 			world.build_offset_cfree(eps_sample)
 			# fig,ax = plt.subplots(figsize = (10,10))
 			# # ax.set_xlim((-size, size))
@@ -124,37 +124,37 @@ for instance in ['srpg_iso_aligned_mc0000172.instance.json', 'cheese102.instance
 				union_of_Polyhedra = cascaded_union(shapely_regions)
 				return union_of_Polyhedra.area/world.cfree_polygon.area
 			
-			# def iris_w_obstacles(points, region_obstacles, old_regions = None, use_region_obstacles = use_region_obstacles_iris):
-			# 	if N>1:
-			# 		#+ region_obstacles
-			# 		obstacles = [r for r in world.obstacle_triangles]
-			# 		if use_region_obstacles:
-			# 			obstacles += region_obstacles
-			# 		regions, _, is_full = generate_regions_multi_threading(points, obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs = old_regions)
-			# 	else:
-			# 		#if N=1 coverage estimate happens at every step
-			# 		obstacles = [r for r in world.obstacle_triangles]
-			# 		if use_region_obstacles:
-			# 			obstacles += region_obstacles
-			# 		regions, _, _ = generate_regions_multi_threading(points, obstacles, world.iris_domain)
-			# 		is_full = 1-eps <= compute_coverage(old_regions+regions)
-			# 	return regions, is_full
-			
 			def iris_w_obstacles(points, region_obstacles, old_regions = None, use_region_obstacles = use_region_obstacles_iris):
 				if N>1:
 					#+ region_obstacles
-					#obstacles = [r for r in world.obstacle_triangles]
-					# if use_region_obstacles:
-					# 	obstacles += region_obstacles
-					regions, _, is_full = generate_regions_multi_threading_regobs(points, [r for r in world.obstacle_triangles], region_obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs = old_regions, noregits = 3)
-				else:
-					#if N=1 coverage estimate happens at every step
-					obstacles = [o for o in world.obstacle_triangles]
+					obstacles = [r for r in world.obstacle_triangles]
 					if use_region_obstacles:
 						obstacles += region_obstacles
-					regions, _, _ = generate_regions_multi_threading_regobs(points, [r for r in world.obstacle_triangles], region_obstacles, world.iris_domain, noregits = 3)
+					regions, _, is_full = generate_regions_multi_threading(points, obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs = old_regions)
+				else:
+					#if N=1 coverage estimate happens at every step
+					obstacles = [r for r in world.obstacle_triangles]
+					if use_region_obstacles:
+						obstacles += region_obstacles
+					regions, _, _ = generate_regions_multi_threading(points, obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs=old_regions)
 					is_full = 1-eps <= compute_coverage(old_regions+regions)
 				return regions, is_full
+			
+			# def iris_w_obstacles(points, region_obstacles, old_regions = None, use_region_obstacles = use_region_obstacles_iris):
+			# 	if N>1:
+			# 		#+ region_obstacles
+			# 		#obstacles = [r for r in world.obstacle_triangles]
+			# 		# if use_region_obstacles:
+			# 		# 	obstacles += region_obstacles
+			# 		regions, _, is_full = generate_regions_multi_threading_regobs(points, [r for r in world.obstacle_triangles], region_obstacles, world.iris_domain, compute_coverage, coverage_threshold=1-eps, old_regs = old_regions, noregits = 3)
+			# 	else:
+			# 		#if N=1 coverage estimate happens at every step
+			# 		obstacles = [o for o in world.obstacle_triangles]
+			# 		if use_region_obstacles:
+			# 			obstacles += region_obstacles
+			# 		regions, _, _ = generate_regions_multi_threading_regobs(points, [r for r in world.obstacle_triangles], region_obstacles, world.iris_domain, noregits = 3)
+			# 		is_full = 1-eps <= compute_coverage(old_regions+regions)
+			# 	return regions, is_full
 			
 			alpha = 0.05
 			eps = 0.1
