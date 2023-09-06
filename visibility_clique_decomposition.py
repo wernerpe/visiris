@@ -1,12 +1,14 @@
 import numpy as np
 from independent_set_solver import solve_max_independent_set_integer
-from clique_covers import compute_greedy_clique_partition, get_iris_metrics,compute_minimal_clique_partition_nx
+from clique_covers import compute_greedy_clique_partition, get_iris_metrics,compute_minimal_clique_partition_nx, compute_cliques_REDUVCC, compute_greedy_edge_clique_cover
 from seeding_utils import shrink_regions
 import time
 from time import strftime,gmtime
 import matplotlib.pyplot as plt
 import pickle
 from pydrake.all import HPolyhedron
+import networkx as nx
+
 
 class VisCliqueDecomp:
     def __init__(self,
@@ -19,8 +21,10 @@ class VisCliqueDecomp:
                  iris_w_obstacles = None,
                  verbose = False,
                  logger = None,
+                 approach = 0
                  ):
         
+        self.approach = approach
         self.logger = logger
         if self.logger is not None: self.logger.time()
         self.vb = verbose
@@ -34,7 +38,7 @@ class VisCliqueDecomp:
         self.maxit = max_iterations
         if self.vb: 
             #print(strftime("[%H:%M:%S] ", gmtime()) +'[VisCliqueDecomp] GuardInsertion attempts M:', str(self.M))
-            print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisCliqueDecomp] Attempting to cover {100*eps:.1f} '%' of Cfree ")
+            print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisCliqueDecomp] Attempting to cover {100-100*eps:.1f} '%' of Cfree ")
         
         self.vgraph_points = []
         self.vgraph_admat = []
@@ -45,9 +49,10 @@ class VisCliqueDecomp:
     def run(self):
         done = False
         it = 0
+        fails = 0
         while it<self.maxit:
             #sample N points in cfree
-            points, sampling_failed = self.sample_cfree(int(self.N/(1+it*1)), self.M, self.regions)
+            points, sampling_failed = self.sample_cfree(int(self.N/(1+it*0)), self.M, self.regions)
             if sampling_failed:
                 print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisCliqueDecomp] Sampling failed after {self.M} attempts ")
         
@@ -59,16 +64,39 @@ class VisCliqueDecomp:
             ad_mat = self.build_vgraph(points)
             self.vgraph_admat.append(ad_mat)
             if self.logger is not None: self.logger.time()
-
-            #solve clique partition problem
-            cliques_idxs = compute_minimal_clique_partition_nx(ad_mat) #compute_greedy_clique_partition(ad_mat)
+            
+            #solve clique partition problem and sort cliques
+            if self.approach == 0:
+                cliques_idxs = compute_cliques_REDUVCC(ad_mat, maxtime = 30)
+            elif self.approach == 1:
+                cliques_idxs = compute_greedy_clique_partition(ad_mat)
+            elif self.approach == 2:
+                cliques_idxs = compute_minimal_clique_partition_nx(ad_mat)
+            elif self.approach == 3:
+                cliques_idxs = compute_greedy_edge_clique_cover(ad_mat)
+           # cliques_idxs = compute_cliques_REDUVCC(ad_mat)#compute_minimal_clique_partition_nx(ad_mat) if self.use_nx else compute_greedy_clique_partition(ad_mat) # #compute_greedy_clique_partition(ad_mat)
             nr_cliques = len(cliques_idxs)
-            self.cliques = np.array([points[i,:] for i in cliques_idxs])
+            min_clique_size = 10
+            end_idx_cand = np.where(np.array([len(c) for c in cliques_idxs]) < min_clique_size)[0]
+            if len(end_idx_cand):
+                end_idx = end_idx_cand[0]
+            else:
+                end_idx = len(cliques_idxs)
+            self.cliques = np.array([points[i,:] for i in cliques_idxs[:end_idx]])
+            nr_cliques_big_enough = len(self.cliques)
             #compute seed points and initial iris metrics
             self.seed_points, self.metrics = get_iris_metrics(self.cliques, self.col_handle)
 
             #self.seed_points +=[points[mhs_idx, :].squeeze()]
-            if self.vb : print(strftime("[%H:%M:%S] ", gmtime()) +'[VisCliqueDecomp] Found ', nr_cliques, ' cliques')
+            if self.vb : 
+                print(strftime("[%H:%M:%S] ", gmtime()) +'[VisCliqueDecomp] Found ', nr_cliques_big_enough, ' cliques')
+                if nr_cliques_big_enough == 0:
+                    fails +=1
+                    if self.logger is not None: self.logger.log_string(strftime("[%H:%M:%S] ", gmtime()) +'[VisCliqueDecomp] No cliques found')
+                    if fails ==10:
+                        return self.regions
+                else:
+                    fails = 0
             if self.logger is not None: self.logger.time()
 
             #grow the regions with obstacles

@@ -35,8 +35,8 @@ use_region_obstacles_iris = 1
 use_region_visibility_obstacles = 1
 region_pullback=0.25
 
-for instance in ["fpg-poly_0000000300_h5.instance.json"]:#,"srpg_iso_aligned_mc0000172.instance.json","fpg-poly_0000000060_h1.instance.json","fpg-poly_0000000070_h1.instance.json"]:#'srpg_iso_aligned_mc0000172.instance.json']:#, #,'fpg-poly_0000000060_h1.instance.json']: #'cheese102.instance.json', 
-	for seed in [2,3]:
+for instance in ["srpg_iso_aligned_mc0000172.instance.json"]: #["srpg_iso_aligned_mc0000172.instance.json"]:#"fpg-poly_0000000060_h1.instance.json","fpg-poly_0000000070_h1.instance.json"]:#["srpg_iso_aligned_mc0000172.instance.json"]:#"fpg-poly_0000000300_h5.instance.json","srpg_iso_aligned_mc0000172.instance.json","fpg-poly_0000000060_h1.instance.json","fpg-poly_0000000070_h1.instance.json"]:#,"srpg_iso_aligned_mc0000172.instance.json","fpg-poly_0000000060_h1.instance.json","fpg-poly_0000000070_h1.instance.json"]:#'srpg_iso_aligned_mc0000172.instance.json']:#, #,'fpg-poly_0000000060_h1.instance.json']: #'cheese102.instance.json', 
+	for seed in [1,2,3]:
 		for N in [1]: 
 			np.random.seed(seed)
 			world_name = instance #"cheese102.instance.json"#small_polys[1] #"cheese205.instance.json"#fpg-poly_0000000060_h1.instance.json"#"srpg_iso_aligned_mc0000172.instance.json"##"fpg-poly_0000000070_h1.instance.json"

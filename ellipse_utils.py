@@ -52,11 +52,11 @@ def get_lj_ellipse(pts):
     b = prog.NewContinuousVariables(dim, 'b')
     prog.AddMaximizeLogDeterminantCost(A)
     for idx, pt in enumerate(pts):
-        pt = pt.reshape(2,1)
+        pt = pt.reshape(dim,1)
         S = prog.NewSymmetricContinuousVariables(dim+1, 'S')
         prog.AddPositiveSemidefiniteConstraint(S)
-        prog.AddLinearEqualityConstraint(S[0,0] == 1)
-        v = (A@pt + b.reshape(2,1)).T
+        prog.AddLinearEqualityConstraint(S[0,0] == 0.9)
+        v = (A@pt + b.reshape(dim,1)).T
         c = (S[1:,1:]-np.eye(dim)).reshape(-1)
         for idx in range(dim):
             prog.AddLinearEqualityConstraint(S[0,1 + idx]-v[0,idx], 0 )
