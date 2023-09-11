@@ -109,6 +109,7 @@ class World():
 			self.obstacle_triangles.append(HPolyhedron(VPolytope(tri_points)))
 	
 	def _create_boundary_obstacles(self,):
+		self.holes_tri = [o for o in self.obstacle_triangles]
 		#create AABB surrounding outer boundary of Polygon
 		vertsAABB = [[1.1*self.bounds[0]-1,1.1*self.bounds[1]-1],
 	   			 [1.1*self.bounds[2],1.1*self.bounds[1]-1],
@@ -141,7 +142,17 @@ class World():
 			v = VPolytope(tri).vertices().T
 			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
 			ax.fill(v[:,0], v[:,1], alpha = 1.0, c = 'k')
-	
+			
+	def plot_cfree_skel(self, ax):
+		nr = len(self.holes_tri)
+		for idx,tri in enumerate(self.obstacle_triangles):
+			v = VPolytope(tri).vertices().T
+			v = np.concatenate((v, v[0,:].reshape(1,-1)), axis=0)
+			if idx>= nr:
+				ax.fill(v[:,0], v[:,1], alpha = 1, c = 'k')
+			ax.fill(v[:,0], v[:,1], alpha = 0.2, c = 'k')
+			ax.plot(v[:,0], v[:,1], alpha = 1.0, c = 'k')
+			
 	def plot_cfree_offset(self, ax):
 		#shapely.plotting.plot_polygon(self.cfree_polygon, ax=ax, add_points=False)
 		p = list(self.offset_polys.values())[0]

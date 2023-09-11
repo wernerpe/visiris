@@ -13,12 +13,12 @@ approach = 1
 N = 500
 ap_names = ['redu', 'greedy', 'nx', 'greedy_edge_CC']
 
-for seed in [1]:
+for seed in range(2,11):
     world = Village()
-    village_side = 19#39
+    village_side = 39
     village_height = 10
     world.build(village_height=village_height, village_side=village_side, building_every=5, density=0.15, seed=seed)
-    world.to_drake_plant()
+    vgraph_builder = world.to_drake_plant()
     print(len(world.obstacles))
 
 
@@ -31,7 +31,7 @@ for seed in [1]:
             while bt_tries<m:
                 point = world.sample_cfree(1)[0]
                 #point = world.sample_cfree(1)[0]
-                if point_near_regions(point, regions, tries = 100, eps = 0.1):
+                if point_near_regions(point, regions, tries = 5, eps = 0.1):
                     bt_tries+=1
                 else:
                     break
@@ -49,20 +49,20 @@ for seed in [1]:
                 in_s+=1
         return (1.0*in_s)/n_s
 
-    def vgraph_builder(points, regions, region_vis_obstacles=False):
-        n = len(points)
-        adj_mat = lil_matrix((n,n))
-        for i in tqdm(range(n)):
-            point = points[i, :]
-            for j in range(len(points[:i])):
-                other = points[j]
-                if region_vis_obstacles:
-                    if vis_reg(point, other, world, regions):
-                        adj_mat[i,j] = adj_mat[j,i] = 1
-                else:
-                    if vis_reg(point, other, world, []):
-                        adj_mat[i,j] = adj_mat[j,i] = 1
-        return adj_mat.toarray()
+    # def vgraph_builder(points, regions, region_vis_obstacles=False):
+    #     n = len(points)
+    #     adj_mat = lil_matrix((n,n))
+    #     for i in tqdm(range(n)):
+    #         point = points[i, :]
+    #         for j in range(len(points[:i])):
+    #             other = points[j]
+    #             if region_vis_obstacles:
+    #                 if vis_reg(point, other, world, regions):
+    #                     adj_mat[i,j] = adj_mat[j,i] = 1
+    #             else:
+    #                 if vis_reg(point, other, world, []):
+    #                     adj_mat[i,j] = adj_mat[j,i] = 1
+    #     return adj_mat.toarray()
 
     # def iris_w_obstacles(points, region_obstacles, old_regions = None, use_region_obstacles = True):
     #     if N>1:
@@ -99,8 +99,8 @@ for seed in [1]:
                             eps = eps,
                             max_iterations=300,
                             sample_cfree=sample_cfree_handle,
-                            col_handle=world.col_handle,
-                            build_vgraph=partial(vgraph_builder, regions = [], region_vis_obstacles = False),
+                            col_handle= world.col_handle,
+                            build_vgraph= world.vgraph_handle,
                             iris_w_obstacles= iris_ellipse_w_obstacles_handle,
                             verbose=True,
                             logger=loggerccd, 

@@ -132,10 +132,10 @@ class Village(EnvironmentVisualizer):
         l = [c[0] - r_trunk, c[1] - r_trunk, 0]
         u = [c[0] + r_trunk, c[1] + r_trunk, c[2] - r]
         color = (.7, .35, 0)
-        trunk = self.box(name + '_trunk', l, u, color)
+        trunk = self.box(name + 'tree/_trunk', l, u, color)
         rand = 0.4*(np.random.rand(3)-0.5)
         color = (.2+rand[0], .8+rand[1], .2+rand[2])
-        foliage = self.cube(name + '_foliage', c, r, color)
+        foliage = self.cube(name + 'tree/_foliage', c, r, color)
         return trunk, foliage
 
     def building(self, name, c, r, n):
@@ -148,13 +148,13 @@ class Village(EnvironmentVisualizer):
         l = [c[0] - r[0], c[1] - r[1], 0]
         u = [c[0] + r[0], c[1] + r[1], h]
         color = (.8, .8, .8)
-        body = self.box(name + '_body', l, u, color)
+        body = self.box(name + 'building/_body', l, u, color)
 
         roof_ratio = 1 / 50
         l[2] = h 
         u[2] = h * (1 + roof_ratio)
         color = (.7, .0, .0)
-        roof = self.box_visual(name + '_roof', l, u, color)
+        roof = self.box_visual(name + 'building/_roof', l, u, color)
 
         windows = []
         eps = 1e-2
@@ -171,10 +171,10 @@ class Village(EnvironmentVisualizer):
                 cij = np.array([c[0] - r[0] + d[0] * (i + .5), c[1], d[2] * (j + .5)])
                 lij = cij - dw
                 uij = cij + dw
-                windows.append(self.box_visual(name + f'_window_x_{i}_{j}', lij, uij, wcolor))
+                windows.append(self.box_visual(name + f'window/_window_x_{i}_{j}', lij, uij, wcolor))
                 lij -= df
                 uij += df
-                windows.append(self.box_visual(name + f'_frame_x_{i}_{j}', lij, uij, fcolor))
+                windows.append(self.box_visual(name + f'window/_frame_x_{i}_{j}', lij, uij, fcolor))
 
         dw = np.array([r[0] + 2 * eps, wr[1], wr[2]])
         df = [- eps, f[1], f[2]]
@@ -183,11 +183,11 @@ class Village(EnvironmentVisualizer):
                 cij = np.array([c[0], c[1] - r[1] + d[1] * (i + .5), d[2] * (j + .5)])
                 lij = cij - dw
                 uij = cij + dw
-                windows.append(self.box_visual(name + f'_window_y_{i}_{j}', lij, uij, wcolor))
+                windows.append(self.box_visual(name + f'window/_window_y_{i}_{j}', lij, uij, wcolor))
 
                 lij -= df
                 uij += df
-                windows.append(self.box_visual(name + f'_frame_y_{i}_{j}', lij, uij, fcolor))
+                windows.append(self.box_visual(name + f'window/_frame_y_{i}_{j}', lij, uij, fcolor))
         
         return body, roof, windows
     
@@ -230,11 +230,11 @@ class Village(EnvironmentVisualizer):
                 d = np.abs(e - s) + 1
                 r = list(.5 * d) + [village_height / 2]
                 n = list(d) + [village_height]
-                self.building(f'building_{i}_{j}_{k}', c, r, n)
+                self.building(f'building/building_{i}_{j}_{k}', c, r, n)
             return blocks
                 
         def _tree(i, j):
-            name = f'tree_{i}_{j}'
+            name = f'tree/tree_{i}_{j}'
             r = .5 # Radius of foliage.
             r_trunk = .1
             low = [i + .5, j + .5, 1]
@@ -243,7 +243,7 @@ class Village(EnvironmentVisualizer):
             self.tree(name, c, r, r_trunk)
                 
         def _bush( i, j):
-            name = f'bush_{i}_{j}'
+            name = f'bush/bush_{i}_{j}'
             r = np.random.uniform(low=.1, high=.35) # Radius.
             h = 4 * r # Height.
             c = np.array([i + .5, j + .5])
@@ -277,24 +277,25 @@ class Village(EnvironmentVisualizer):
         
         self.iris_domain = HPolyhedron.MakeBox(self.L_dom, self.U_dom)
 
-    def col_handle(self, pt):
-        for r in self.obstacles:
-            if r.PointInSet(pt):
-                return True
-        return False
+        self.checker, self.vgraph_handle = self.to_drake_plant()
 
-    def visible(self, a, b):
-        if self.col_handle(a) or self.col_handle(b):
-            return False
-        if np.linalg.norm(a-b)<1e-5:
-            return True
+
+
+    def col_handle(self, pt):
+        return not self.checker.CheckConfigCollisionFree(pt.squeeze())
+
+    # def visible(self, a, b):
+    #     if self.col_handle(a) or self.col_handle(b):
+    #         return False
+    #     if np.linalg.norm(a-b)<1e-5:
+    #         return True
         
-        tval = np.linspace(0, 1, 100)
-        for t in tval:
-            pt = (1-t)*a + t* b
-            if self.col_handle(pt):
-                return False
-        return True
+    #     tval = np.linspace(0, 1, 100)
+    #     for t in tval:
+    #         pt = (1-t)*a + t* b
+    #         if self.col_handle(pt):
+    #             return False
+    #     return True
     
     def sample_cfree(self, n):
         points = []
@@ -305,14 +306,11 @@ class Village(EnvironmentVisualizer):
         return np.array(points)
     
     def point_in_cfree(self, pt):
-        for r in self.obstacles:
-            if r.PointInSet(pt):
-                return False
-        return True
+        return self.checker.CheckConfigCollisionFree(pt.squeeze())
     
     def plot_points(self, points, color = (0,0,0), radius = 0.1):
         for i,pt in enumerate(points):
-            _sphere(self, f"{i}", pt, radius, color, opacity=0.5)
+            _sphere(self, f"points/{i}", pt, radius, color, opacity=0.5)
 
             
     def plot_regions(self, regions, ellipses = None,
@@ -461,26 +459,26 @@ class Village(EnvironmentVisualizer):
         parser = builder.parser()
         models = [parser.AddModelFromFile('tmp/village.urdf')]
         plant.Finalize()
-        meshcat = StartMeshcat()
+        meshcat2 = StartMeshcat()
         meshcat_params = MeshcatVisualizerParams()
         meshcat_params.role = Role.kProximity
         visualizer = MeshcatVisualizer.AddToBuilder(
-                builder.builder(), scene_graph, meshcat, meshcat_params)
+                builder.builder(), scene_graph, meshcat2, meshcat_params)
         
         diagram = builder.Build()
         diagram_context = diagram.CreateDefaultContext()
         diagram.ForcedPublish(diagram_context)
         plant_context = plant.GetMyMutableContextFromRoot(diagram_context)
-        robot_instances =[plant.GetModelInstanceByName("iiwaonedof"), plant.GetModelInstanceByName("iiwatwodof")]
+        robot_instances =[plant.GetModelInstanceByName("dronevillage")]
         checker = SceneGraphCollisionChecker(model = diagram.Clone(), 
                     robot_model_instances = robot_instances,
                     distance_function_weights =  [1] * plant.num_positions(),
                     #configuration_distance_function = _configuration_distance,
-                    edge_step_size = 0.125)
+                    edge_step_size = 0.1)
         vgraph_handle = partial(vgraph, checker = checker, parallelize = True) 
 
-        return vgraph_handle 
-        print('done')
+        return checker, vgraph_handle 
+
 
 
 def vgraph(points, checker, parallelize):
@@ -489,4 +487,4 @@ def vgraph(points, checker, parallelize):
     for i in range(N):
         ad_mat[i,i] = False
     #TODO: need to make dense for now to avoid wierd nx bugs for saving the metis file.
-    return  ad_mat
+    return  ad_mat.toarray()

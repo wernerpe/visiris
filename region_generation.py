@@ -41,7 +41,7 @@ def generate_regions_ellipses(pts, Aobs, Bobs, Aell, cell, Adom, bdom, maxiters=
 	for idx, pt in enumerate(pts):
 		print(time.strftime("[%H:%M:%S] ", time.gmtime()), idx+1, '/', len(pts))
 		try:
-			iris_options.initial_ellipsoid = Hyperellipsoid(Aell[idx],cell[idx])
+			iris_options.starting_ellipse = Hyperellipsoid(Aell[idx],cell[idx])
 			reg = Iris(obstacles, pt.reshape(-1,1), domain, iris_options)
 			if np.array_equal(domain.A(), reg.A()):
 				print('Iris failed at ', pt)
@@ -159,27 +159,28 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 		return regions, succ_seed_pts, is_full
 	
 def generate_regions_ellipses_multi_threading(pts, seed_ellipses, obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, maxiters=5):
-	is_full = False
-	regions = []
-	succ_seed_pts = []
-	A_obs = [r.A() for r in obstacles]
-	b_obs = [r.b() for r in obstacles]
-	A_ell = [s.A() for s in seed_ellipses]
-	c_ell = [s.center() for s in seed_ellipses]
-	A_dom = domain.A()
-	b_dom = domain.b()
-	#if len(pts.reshape(-1,2))==1:
-	for pt, Aell, cell in zip(pts, A_ell, c_ell):
-		region, succ_seed_pt = generate_regions_ellipses(pt.reshape(1,-1), A_obs, b_obs, [Aell], [cell], A_dom, b_dom, maxiters)
-		if len(region)>0:
-			regions += region
-			cov = estimate_coverage(regions+old_regs)
-			is_full = coverage_threshold<=cov
-			#regions.append(region)
-			succ_seed_pts.append(succ_seed_pt)
-			if is_full: 
-				return regions, succ_seed_pts, is_full
-	return regions, succ_seed_pts, is_full
+    ##multithreading not implemented yet
+    is_full = False
+    regions = []
+    succ_seed_pts = []
+    A_obs = [r.A() for r in obstacles]
+    b_obs = [r.b() for r in obstacles]
+    A_ell = [s.A() for s in seed_ellipses]
+    c_ell = [s.center() for s in seed_ellipses]
+    A_dom = domain.A()
+    b_dom = domain.b()
+    #if len(pts.reshape(-1,2))==1:
+    for pt, Aell, cell in zip(pts, A_ell, c_ell):
+        region, succ_seed_pt = generate_regions_ellipses(pt.reshape(1,-1), A_obs, b_obs, [Aell], [cell], A_dom, b_dom, maxiters)
+        if len(region)>0:
+            regions += region
+            cov = estimate_coverage(regions+old_regs)
+            is_full = coverage_threshold<=cov
+            #regions.append(region)
+            succ_seed_pts.append(succ_seed_pt)
+            if is_full: 
+                return regions, succ_seed_pts, is_full
+    return regions, succ_seed_pts, is_full
 	
 	# genreg_hand = partial(generate_regions_ellipses,
 	# 							Aobs = A_obs,
