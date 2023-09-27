@@ -38,7 +38,7 @@ for seed in  [9]:
         return points, False
 
     def estimate_coverage(regions):
-        n_s = 3000
+        n_s = 5000
         samples = world.sample_cfree(n_s)
         in_s = 0
         for s in samples:

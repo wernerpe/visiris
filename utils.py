@@ -121,7 +121,7 @@ def generate_maximally_different_colors(n):
 
     # Generate n random hues, ensuring maximally different colors
     hues = [i / n for i in range(n)]
-
+    random.seed(5)
     # Shuffle the hues to get random order of colors
     random.shuffle(hues)
 
@@ -134,3 +134,88 @@ def generate_maximally_different_colors(n):
         colors.append(rgb)
 
     return colors
+
+import numpy as np
+from functools import partial
+from pydrake.all import (
+                         SurfaceTriangle, TriangleSurfaceMesh,
+                         VPolytope, HPolyhedron,  Rgba)
+import mcubes
+from scipy.spatial import ConvexHull
+import random
+import colorsys
+
+
+def plot_regions(meshcat, regions, ellipses = None,
+                     region_suffix = '', colors = None,
+                     wireframe = False,
+                     opacity = 0.7,
+                     fill = True,
+                     line_width = 10,
+                     darken_factor = .2,
+                     el_opacity = 0.3,
+                     resolution = 30,
+                     offset = np.zeros(3)):
+        if colors is None:
+            colors = generate_maximally_different_colors(len(regions))
+
+        for i, region in enumerate(regions):
+            c = Rgba(*[col for col in colors[i]],opacity)
+            prefix = f"/iris/regions{region_suffix}/{i}"
+            name = prefix + "/hpoly"
+            if region.ambient_dimension() == 3:
+                # plot_hpoly3d(meshcat, name, region,
+                #                   c, wireframe = wireframe, resolution = resolution, offset = offset)
+                plot_hpoly3d_2(meshcat, name, region,
+                                  c, wireframe = wireframe, resolution = resolution, offset = offset)
+
+def get_plot_poly_mesh(region, resolution):
+
+        def inpolycheck(q0, q1, q2, A, b):
+            q = np.array([q0, q1, q2])
+            res = np.min(1.0 * (A @ q - b <= 0))
+            # print(res)
+            return res
+
+        aabb_max, aabb_min = get_AABB_limits(region)
+
+        col_hand = partial(inpolycheck, A=region.A(), b=region.b())
+        vertices, triangles = mcubes.marching_cubes_func(tuple(aabb_min),
+                                                         tuple(aabb_max),
+                                                         resolution,
+                                                         resolution,
+                                                         resolution,
+                                                         col_hand,
+                                                         0.5)
+        tri_drake = [SurfaceTriangle(*t) for t in triangles]
+        return vertices, tri_drake
+
+def plot_hpoly3d(meshcat, name, hpoly, color, wireframe = True, resolution = 30, offset = np.zeros(3)):
+        verts, triangles = get_plot_poly_mesh(hpoly,
+                                                   resolution=resolution)
+        meshcat.SetObject(name, TriangleSurfaceMesh(triangles, verts+offset.reshape(-1,3)),
+                                color, wireframe=wireframe)
+        
+def plot_hpoly3d_2(meshcat, name, hpoly, color, wireframe = True, resolution = -1, offset = np.zeros(3)):
+        #meshcat wierdness of double rendering
+        hpoly = HPolyhedron(hpoly.A(), hpoly.b())
+        verts = VPolytope(hpoly).vertices().T
+        hull = ConvexHull(verts)
+        triangles = []
+        for s in hull.simplices:
+            triangles.append(s)
+        tri_drake = [SurfaceTriangle(*t) for t in triangles]
+        # obj = self[name]
+        # objwf = self[name+'wf']
+        # col = to_hex(color)
+        #material = MeshLambertMaterial(color=col, opacity=opacity)
+        color2 = Rgba(0.8*color.r(), 0.8*color.g(), 0.8*color.b(), color.a())
+        meshcat.SetObject(name, TriangleSurfaceMesh(tri_drake, verts+offset.reshape(-1,3)),
+                                color, wireframe=False)
+        meshcat.SetObject(name+'wf', TriangleSurfaceMesh(tri_drake, verts+offset.reshape(-1,3)),
+                                color2, wireframe=True)
+        meshcat.SetProperty(name[:-6], "visible", False)
+        #meshcat.SetProperty(name, "visible", False)
+        # #obj.set_object(TriangularMeshGeometry(verts, triangles), material)
+        # material = MeshLambertMaterial(color=col, opacity=0.95, wireframe=True)
+        # objwf.set_object(TriangularMeshGeometry(verts, triangles), material)

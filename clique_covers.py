@@ -16,7 +16,144 @@ def networkx_to_metis_format(graph):
         metis_lines.append(neighbors + "\n")
     
     return metis_lines
+from ellipse_utils import switch_ellipse_description
 
+def compute_outer_LJ_sphere(pts):
+    dim = pts[0].shape[0]
+    # pts = #[pt1, pt2]
+    # for _ in range(2*dim):
+    #     m = 0.5*(pt1+pt2) + eps*(np.random.rand(2,1)-0.5)
+    #     pts.append(m)
+    upper_triangular_indeces = []
+    for i in range(dim-1):
+        for j in range(i+1, dim):
+            upper_triangular_indeces.append([i,j])
+
+    upper_triangular_indeces = np.array(upper_triangular_indeces)
+    prog = MathematicalProgram()
+    inv_radius = prog.NewContinuousVariables(1, 'rad')
+    A = inv_radius*np.eye(dim)
+    b = prog.NewContinuousVariables(dim, 'b')
+    prog.AddMaximizeLogDeterminantCost(A)
+    for idx, pt in enumerate(pts):
+        pt = pt.reshape(dim,1)
+        S = prog.NewSymmetricContinuousVariables(dim+1, 'S')
+        prog.AddPositiveSemidefiniteConstraint(S)
+        prog.AddLinearEqualityConstraint(S[0,0] == 0.9)
+        v = (A@pt + b.reshape(dim,1)).T
+        c = (S[1:,1:]-np.eye(dim)).reshape(-1)
+        for idx in range(dim):
+            prog.AddLinearEqualityConstraint(S[0,1 + idx]-v[0,idx], 0 )
+        for ci in c:
+            prog.AddLinearEqualityConstraint(ci, 0 )
+
+    prog.AddPositiveSemidefiniteConstraint(A) # eps * identity
+
+    # for aij in A[upper_triangular_indeces[:,0], upper_triangular_indeces[:,1]]:
+    #     prog.AddLinearConstraint(aij == 0)
+    prog.AddPositiveSemidefiniteConstraint(10000*np.eye(dim)-A)
+
+    sol = Solve(prog)
+    if sol.is_success():
+        HE, _, _ =switch_ellipse_description(sol.GetSolution(inv_radius)*np.eye(dim), sol.GetSolution(b))
+    return HE
+
+
+def max_clique_w_cvx_hull_constraint(adj_mat, graph_vertices, c = None):
+    assert adj_mat.shape[0] == len(graph_vertices)
+    #assert graph_vertices[0, :].shape[0] == points_to_exclude.shape[1]
+    
+    dim = graph_vertices.shape[1]
+    #compute radius of circumscribed sphere of all points to get soft margin size
+    HS = compute_outer_LJ_sphere(graph_vertices)
+    radius = 2*1/(HS.A()[0,0]+1e-6)
+    n = adj_mat.shape[0]
+    if c is None:
+        c = np.ones((n,))
+    prog = MathematicalProgram()
+    v = prog.NewBinaryVariables(n)
+    prog.AddLinearCost(-np.sum(c*v))
+    
+    #hyperplanes
+    lambdas = prog.NewContinuousVariables(n, dim+1)
+    #slack variables for soft margins
+    gammas = prog.NewContinuousVariables(n, n)
+
+    Points_mat = np.concatenate((graph_vertices,np.ones((n,1))), axis =1)
+    #Exclusion_points_mat =  np.concatenate((points_to_exclude,np.ones((num_points_to_exclude,1))), axis =1)
+
+    for i in range(0,n):
+        for j in range(i+1,n):
+            if adj_mat[i,j] == 0:
+                prog.AddLinearConstraint(v[i] + v[j] <= 1)
+
+    for i in range(n):
+        constraint1 = -Points_mat@lambdas[i,:]+2*radius*gammas[i,:]
+        constraint2 = Points_mat[i,:]@lambdas[i,:]  #+ np.sum(gammas)
+        for k in range(n):
+            prog.AddLinearConstraint(constraint1[k] >=0)
+
+        prog.AddLinearConstraint(constraint2>=1-v[i]) #
+
+    for i in range(n):
+        gammas_point_i = gammas[i, :]    
+        for vi, gi in zip(v, gammas_point_i):
+            prog.AddLinearConstraint(gi >= (vi-1))
+
+        for vi,gi in zip(v, gammas_point_i):
+            prog.AddLinearConstraint((1-vi)>= gi )
+
+
+    solver_options = SolverOptions()
+    solver_options.SetOption(CommonSolverOption.kPrintToConsole, 1)
+
+    result = Solve(prog, solver_options=solver_options)
+    print(result.is_success())
+    return -result.get_optimal_cost(), np.where(result.GetSolution(v)==1)[0]
+
+def compute_greedy_clique_partition_convex_hull(adj_mat, pts, smin = 10):
+    assert adj_mat.shape[0] == len(pts)
+    cliques = []
+    done = False
+    pts_curr = pts.copy()
+    adj_curr = adj_mat.copy()
+    ind_curr = np.arange(len(adj_curr))
+    c = np.ones((adj_mat.shape[0],))
+    while not done:
+        val, ind_max_clique_local = max_clique_w_cvx_hull_constraint(adj_curr, pts_curr,c)
+        #non_max_ind_local = np.arange(len(adj_curr))
+        #non_max_ind_local = np.delete(non_max_ind_local, ind_max_clique_local, None)
+        index_max_clique_global = np.array([ind_curr[i] for i in ind_max_clique_local])
+        c[ind_max_clique_local] = 0
+        cliques.append(index_max_clique_global.reshape(-1))
+        #adj_curr = np.delete(adj_curr, ind_max_clique_local, 0)
+        #adj_curr = np.delete(adj_curr, ind_max_clique_local, 1)
+        #pts_curr = np.delete(pts_curr, ind_max_clique_local, 0)
+        #ind_curr = np.delete(ind_curr, ind_max_clique_local)
+        if val< smin:
+            done = True
+    return cliques
+
+def compute_greedy_clique_partition_convex_hull_vertexremoval(adj_mat, pts, smin = 10):
+    assert adj_mat.shape[0] == len(pts)
+    cliques = []
+    done = False
+    pts_curr = pts.copy()
+    adj_curr = adj_mat.copy()
+    ind_curr = np.arange(len(adj_curr))
+    while not done:
+        val, ind_max_clique_local = max_clique_w_cvx_hull_constraint(adj_curr, pts_curr)
+        #non_max_ind_local = np.arange(len(adj_curr))
+        #non_max_ind_local = np.delete(non_max_ind_local, ind_max_clique_local, None)
+        index_max_clique_global = np.array([ind_curr[i] for i in ind_max_clique_local])
+        cliques.append(index_max_clique_global.reshape(-1))
+        adj_curr = np.delete(adj_curr, ind_max_clique_local, 0)
+        adj_curr = np.delete(adj_curr, ind_max_clique_local, 1)
+        pts_curr = np.delete(pts_curr, ind_max_clique_local, 0)
+        ind_curr = np.delete(ind_curr, ind_max_clique_local)
+        if len(adj_curr) == 0 or val< smin:
+            done = True
+    return cliques
 
 def compute_cliques_REDUVCC(ad_mat, maxtime = 30):
     nx_graph = nx.Graph(ad_mat)

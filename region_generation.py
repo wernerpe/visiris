@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 def generate_regions(pts, Aobs, Bobs, Adom, bdom):
 	iris_options = IrisOptions()
 	iris_options.require_sample_point_is_contained = True
-	iris_options.iteration_limit = 5
+	iris_options.iteration_limit = 10
 	iris_options.termination_threshold = -1
 	iris_options.relative_termination_threshold = 0.05
 	obstacles = [HPolyhedron(A, b) for A,b in zip(Aobs,Bobs)]
@@ -43,6 +43,7 @@ def generate_regions_ellipses(pts, Aobs, Bobs, Aell, cell, Adom, bdom, maxiters=
 		try:
 			iris_options.starting_ellipse = Hyperellipsoid(Aell[idx],cell[idx])
 			reg = Iris(obstacles, pt.reshape(-1,1), domain, iris_options)
+			#print(f"aa succ {reg.A()}")
 			if np.array_equal(domain.A(), reg.A()):
 				print('Iris failed at ', pt)
 				return regions, succ_seed_pts
@@ -158,7 +159,7 @@ def generate_regions_multi_threading(pts, obstacles, domain, estimate_coverage =
 			succ_seed_pts += r[1]
 		return regions, succ_seed_pts, is_full
 	
-def generate_regions_ellipses_multi_threading(pts, seed_ellipses, obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, maxiters=5):
+def generate_regions_ellipses_multi_threading(pts, seed_ellipses, obstacles, domain, estimate_coverage = None, coverage_threshold = None, old_regs = None, maxiters=1):
     ##multithreading not implemented yet
     is_full = False
     regions = []

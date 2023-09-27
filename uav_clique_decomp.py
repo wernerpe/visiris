@@ -11,14 +11,14 @@ alpha = 0.05
 eps = 0.2
 approach = 1
 N = 500
-ap_names = ['redu', 'greedy', 'nx', 'greedy_edge_CC']
+ap_names = ['redu', 'greedy', 'nx', 'greedy_edge_CC', 'greedy_cvx_hull_fill']
 
-for seed in range(2,11):
+for seed in range(0,1):
     world = Village()
     village_side = 39
     village_height = 10
     world.build(village_height=village_height, village_side=village_side, building_every=5, density=0.15, seed=seed)
-    vgraph_builder = world.to_drake_plant()
+    #vgraph_builder = world.to_drake_plant()
     print(len(world.obstacles))
 
 
@@ -41,7 +41,7 @@ for seed in range(2,11):
         return points, False
 
     def estimate_coverage(regions):
-        n_s = 3000
+        n_s = 5000
         samples = world.sample_cfree(n_s)
         in_s = 0
         for s in samples:
@@ -92,7 +92,7 @@ for seed in range(2,11):
         if len(points)>=1:
             #+ region_obstacles
             obstacles = [r for r in world.obstacles]
-            regions, _, is_full = generate_regions_ellipses_multi_threading(points, ellipsoids, obstacles, world.iris_domain, estimate_coverage, coverage_threshold=1-eps, old_regs = old_regions, maxiters=3)
+            regions, _, is_full = generate_regions_ellipses_multi_threading(points, ellipsoids, obstacles, world.iris_domain, estimate_coverage, coverage_threshold=1-eps, old_regs = old_regions, maxiters=1)
         return regions, is_full
     
     VCD = VisCliqueDecomp(  N = N,
@@ -104,7 +104,7 @@ for seed in range(2,11):
                             iris_w_obstacles= iris_ellipse_w_obstacles_handle,
                             verbose=True,
                             logger=loggerccd, 
-                            approach = approach
+                            approach = approach,
                         )
 
     VCD.run()

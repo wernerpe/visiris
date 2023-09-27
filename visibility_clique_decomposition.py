@@ -1,6 +1,11 @@
 import numpy as np
 from independent_set_solver import solve_max_independent_set_integer
-from clique_covers import compute_greedy_clique_partition, get_iris_metrics,compute_minimal_clique_partition_nx, compute_cliques_REDUVCC, compute_greedy_edge_clique_cover
+from clique_covers import (compute_greedy_clique_partition, 
+                         get_iris_metrics,compute_minimal_clique_partition_nx, 
+                         compute_cliques_REDUVCC, 
+                         compute_greedy_edge_clique_cover,
+                         compute_greedy_clique_partition_convex_hull)
+
 from seeding_utils import shrink_regions
 import time
 from time import strftime,gmtime
@@ -74,6 +79,9 @@ class VisCliqueDecomp:
                 cliques_idxs = compute_minimal_clique_partition_nx(ad_mat)
             elif self.approach == 3:
                 cliques_idxs = compute_greedy_edge_clique_cover(ad_mat)
+            elif self.approach == 4:
+                cliques_idxs = compute_greedy_clique_partition_convex_hull(ad_mat, np.array(points))
+                
            # cliques_idxs = compute_cliques_REDUVCC(ad_mat)#compute_minimal_clique_partition_nx(ad_mat) if self.use_nx else compute_greedy_clique_partition(ad_mat) # #compute_greedy_clique_partition(ad_mat)
             nr_cliques = len(cliques_idxs)
             min_clique_size = 10

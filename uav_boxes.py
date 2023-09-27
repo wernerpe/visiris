@@ -15,6 +15,8 @@ from fractions import Fraction
 import random
 from functools import partial
 from pydrake.all import VisibilityGraph,SceneGraphCollisionChecker
+from scipy.spatial import ConvexHull
+from pydrake.all import VPolytope
 
 to_hex = lambda rgb: '0x' + _to_hex(rgb)[1:]
 
@@ -327,11 +329,31 @@ class Village(EnvironmentVisualizer):
         for i, region in enumerate(regions):
             c = tuple([col/255 for col in colors[i]])#,opacity)
             prefix = f"/cfree/regions{region_suffix}/{i}"
-            name = prefix + "/hpoly"
+            name = prefix# + "/hpoly"
             if region.ambient_dimension() == 3:
-                self.plot_hpoly3d(name, region,
-                                  c, wireframe = wireframe, resolution = 30, opacity = opacity)
-                
+                # self.plot_hpoly3d(name, region,
+                #                   c, wireframe = wireframe, resolution = 30, opacity = opacity)
+                self.plot_hpoly3d_2(name, region,
+                                   c, wireframe = wireframe,opacity = opacity)
+
+    def plot_hpoly3d_2(self, name, region, color, wireframe, opacity):
+        region = HPolyhedron(region.A(), region.b())
+        verts = VPolytope(region).vertices().T
+        hull = ConvexHull(verts)
+        triangles = []
+        for s in hull.simplices:
+            triangles.append(s)
+        tri_drake = [SurfaceTriangle(*t) for t in triangles]
+        obj = self[name]
+        objwf = self[name+'wf']
+        col = to_hex(color)
+        material = MeshLambertMaterial(color=col, opacity=opacity)
+        obj.set_object(TriangularMeshGeometry(verts, triangles), material)
+        material = MeshLambertMaterial(color=col, opacity=0.95, wireframe=True)
+        objwf.set_object(TriangularMeshGeometry(verts, triangles), material)
+        objwf.set_property("Visible", True)
+        obj.set_property("Visible", True)
+
     def get_AABB_limits(self, hpoly, dim = 3):
         max_limits = []
         min_limits = []
@@ -387,7 +409,8 @@ class Village(EnvironmentVisualizer):
             col = to_hex(color)
             material = MeshLambertMaterial(color=col, opacity=opacity)
             box.set_object(TriangularMeshGeometry(verts, triangles), material)
-    
+            box.set_property("Visible", False)
+            
     def convert_box(self, l, u):
         pos = 0.5*(l+u)
         size = u-l
@@ -458,19 +481,26 @@ class Village(EnvironmentVisualizer):
         scene_graph = builder.scene_graph()
         parser = builder.parser()
         models = [parser.AddModelFromFile('tmp/village.urdf')]
+        #meshcat2 = StartMeshcat()
+        # meshcat_params = MeshcatVisualizerParams()
+        # meshcat_params.role = Role.kProximity
+        # visualizer = MeshcatVisualizer.AddToBuilder(
+        #         builder.builder(), scene_graph, meshcat2, meshcat_params)
+        
         plant.Finalize()
-        meshcat2 = StartMeshcat()
-        meshcat_params = MeshcatVisualizerParams()
-        meshcat_params.role = Role.kProximity
-        visualizer = MeshcatVisualizer.AddToBuilder(
-                builder.builder(), scene_graph, meshcat2, meshcat_params)
+        from pydrake.all import Meldis, AddDefaultVisualization
+        meldis = Meldis()
+        self.meshcat_drake = meldis.meshcat
+        visualizer = AddDefaultVisualization(builder.builder(), meldis.meshcat)
+        
+        
         
         diagram = builder.Build()
         diagram_context = diagram.CreateDefaultContext()
         diagram.ForcedPublish(diagram_context)
         plant_context = plant.GetMyMutableContextFromRoot(diagram_context)
         robot_instances =[plant.GetModelInstanceByName("dronevillage")]
-        checker = SceneGraphCollisionChecker(model = diagram.Clone(), 
+        checker = SceneGraphCollisionChecker(model = diagram, 
                     robot_model_instances = robot_instances,
                     distance_function_weights =  [1] * plant.num_positions(),
                     #configuration_distance_function = _configuration_distance,
