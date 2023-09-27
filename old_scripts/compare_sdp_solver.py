@@ -1,6 +1,6 @@
 import numpy as np
 from visibility_graphs import get_visibility_graph
-from independent_set import solve_max_independent_set_binary_quad_GW
+from old_scripts.independent_set import solve_max_independent_set_binary_quad_GW
 import matplotlib.pyplot as plt
 from cgdataset import World
 from pydrake.all import MosekSolver, ScsSolver

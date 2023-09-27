@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from functools import partial
 from cgdataset import World, sorted_vertices
-from independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW, DoubleGreedy,DoubleGreedyPartialVisbilityGraph
+from old_scripts.independent_set import solve_lovasz_sdp, solve_max_independent_set_integer, solve_max_independent_set_binary_quad_GW, DoubleGreedy,DoubleGreedyPartialVisbilityGraph
 from pydrake.geometry.optimization import (
     HPolyhedron, VPolytope, Iris, IrisOptions, Hyperellipsoid)
 from region_generation import generate_regions_multi_threading, fill_remaining_space, generate_region_with_region_obstacles
