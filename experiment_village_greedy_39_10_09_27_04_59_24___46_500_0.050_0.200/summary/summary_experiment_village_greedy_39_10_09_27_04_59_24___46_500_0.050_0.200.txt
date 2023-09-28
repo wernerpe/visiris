@@ -1,0 +1,61 @@
+summary experiment_village_greedy_39_10_09_27_04_59_24___46_500_0.050_0.200
+GuardInsertion attempts M:41, N:500 
+0.95 probability that unseen region is less than 20.0 '%' of Cfree -------------------------------------------
+-------------------------------------------
+-------------------------------------------
+ITERATION: 0
+number of regions step 17
+number of regions total 17
+tstep 183.851, t_total 183.851
+tsample 0.246, t_visgraph 77.830, t_ccv 48.834, t_regions 56.941
+number of regions total 17
+coverage 0.4000
+-------------------------------------------
+ITERATION: 1
+number of regions step 17
+number of regions total 34
+tstep 184.898, t_total 368.749
+tsample 1.333, t_visgraph 71.916, t_ccv 55.795, t_regions 55.855
+number of regions total 34
+coverage 0.5716
+-------------------------------------------
+ITERATION: 2
+number of regions step 14
+number of regions total 48
+tstep 189.930, t_total 558.679
+tsample 1.546, t_visgraph 66.864, t_ccv 76.457, t_regions 45.063
+number of regions total 48
+coverage 0.6722
+-------------------------------------------
+ITERATION: 3
+number of regions step 16
+number of regions total 64
+tstep 245.515, t_total 804.194
+tsample 1.740, t_visgraph 63.623, t_ccv 122.569, t_regions 57.583
+number of regions total 64
+coverage 0.7244
+-------------------------------------------
+ITERATION: 4
+number of regions step 9
+number of regions total 73
+tstep 216.766, t_total 1020.960
+tsample 1.859, t_visgraph 65.402, t_ccv 114.426, t_regions 35.079
+number of regions total 73
+coverage 0.7640
+-------------------------------------------
+ITERATION: 5
+number of regions step 7
+number of regions total 80
+tstep 198.095, t_total 1219.056
+tsample 2.008, t_visgraph 62.926, t_ccv 101.527, t_regions 31.634
+number of regions total 80
+coverage 0.7892
+-------------------------------------------
+ITERATION: 6
+number of regions step 3
+number of regions total 83
+tstep 183.335, t_total 1402.390
+tsample 2.185, t_visgraph 59.172, t_ccv 112.285, t_regions 9.692
+number of regions total 83
+coverage 0.7980
+[05:22:47] [VisCliqueDecomp] Coverage met, terminated on Iris step
