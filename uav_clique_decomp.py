@@ -7,7 +7,7 @@ from tqdm import tqdm
 from region_generation import generate_regions_multi_threading
 
 seed = 0
-alpha = 0.05
+#alpha = 0.05
 eps = 0.2
 approach = 1
 N = 500
@@ -48,37 +48,6 @@ for seed in range(0,1):
             if point_in_regions(s, regions):
                 in_s+=1
         return (1.0*in_s)/n_s
-
-    # def vgraph_builder(points, regions, region_vis_obstacles=False):
-    #     n = len(points)
-    #     adj_mat = lil_matrix((n,n))
-    #     for i in tqdm(range(n)):
-    #         point = points[i, :]
-    #         for j in range(len(points[:i])):
-    #             other = points[j]
-    #             if region_vis_obstacles:
-    #                 if vis_reg(point, other, world, regions):
-    #                     adj_mat[i,j] = adj_mat[j,i] = 1
-    #             else:
-    #                 if vis_reg(point, other, world, []):
-    #                     adj_mat[i,j] = adj_mat[j,i] = 1
-    #     return adj_mat.toarray()
-
-    # def iris_w_obstacles(points, region_obstacles, old_regions = None, use_region_obstacles = True):
-    #     if N>1:
-    #         #+ region_obstacles
-    #         obstacles = [r for r in world.obstacles]
-    #         if use_region_obstacles:
-    #             obstacles += region_obstacles
-    #         regions, _, is_full = generate_regions_multi_threading(points, obstacles, world.iris_domain, estimate_coverage, coverage_threshold=1-eps, old_regs = old_regions)
-    #     else:
-    #         #if N=1 coverage estimate happens at every step
-    #         obstacles = [r for r in world.obstacles]
-    #         if use_region_obstacles:
-    #             obstacles += region_obstacles
-    #         regions, _, _ = generate_regions_multi_threading(points, obstacles, world.iris_domain, estimate_coverage, coverage_threshold=1-eps, old_regs=old_regions)
-    #         is_full = 1-eps <= estimate_coverage(old_regions+regions)
-    #     return regions, is_full
 
     from vislogging import LoggerClique3D
     from visibility_clique_decomposition import VisCliqueDecomp
