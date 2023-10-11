@@ -9,9 +9,9 @@ from region_generation import generate_regions_multi_threading
 seed = 0
 alpha = 0.05
 eps = 0.2
-approach = 1
+approach = 5
 N = 500
-ap_names = ['redu', 'greedy', 'nx', 'greedy_edge_CC', 'greedy_cvx_hull_fill']
+ap_names = ['redu', 'greedy', 'nx', 'greedy_edge_CC','greedy_cvxh', 'greedy_cvxh_ell']
 
 for seed in range(0,1):
     world = Village()
@@ -20,7 +20,6 @@ for seed in range(0,1):
     world.build(village_height=village_height, village_side=village_side, building_every=5, density=0.15, seed=seed)
     #vgraph_builder = world.to_drake_plant()
     print(len(world.obstacles))
-
 
     def sample_cfree_handle(n, m, regions=None):
         points = np.zeros((n,3))

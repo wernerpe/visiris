@@ -4,7 +4,8 @@ from clique_covers import (compute_greedy_clique_partition,
                          get_iris_metrics,compute_minimal_clique_partition_nx, 
                          compute_cliques_REDUVCC, 
                          compute_greedy_edge_clique_cover,
-                         compute_greedy_clique_partition_convex_hull)
+                         compute_greedy_clique_partition_convex_hull,
+                         compute_greedy_clique_cover_w_ellipsoidal_convex_hull_constraint)
 
 from seeding_utils import shrink_regions
 import time
@@ -26,7 +27,8 @@ class VisCliqueDecomp:
                  iris_w_obstacles = None,
                  verbose = False,
                  logger = None,
-                 approach = 0
+                 approach = 0,
+                 min_clique_size = 10
                  ):
         
         self.approach = approach
@@ -41,6 +43,7 @@ class VisCliqueDecomp:
         self.eps = eps
         self.M = 1e5 #attempts to insert a point in cfree
         self.maxit = max_iterations
+        self.min_clique_size = min_clique_size
         if self.vb: 
             #print(strftime("[%H:%M:%S] ", gmtime()) +'[VisCliqueDecomp] GuardInsertion attempts M:', str(self.M))
             print(strftime("[%H:%M:%S] ", gmtime()) +f"[VisCliqueDecomp] Attempting to cover {100-100*eps:.1f} '%' of Cfree ")
@@ -81,11 +84,13 @@ class VisCliqueDecomp:
                 cliques_idxs = compute_greedy_edge_clique_cover(ad_mat)
             elif self.approach == 4:
                 cliques_idxs = compute_greedy_clique_partition_convex_hull(ad_mat, np.array(points))
+            elif self.approach == 5:
+                cliques_idxs, _ = compute_greedy_clique_cover_w_ellipsoidal_convex_hull_constraint(ad_mat, np.array(points), smin= self.min_clique_size)
                 
            # cliques_idxs = compute_cliques_REDUVCC(ad_mat)#compute_minimal_clique_partition_nx(ad_mat) if self.use_nx else compute_greedy_clique_partition(ad_mat) # #compute_greedy_clique_partition(ad_mat)
             nr_cliques = len(cliques_idxs)
-            min_clique_size = 10
-            end_idx_cand = np.where(np.array([len(c) for c in cliques_idxs]) < min_clique_size)[0]
+            
+            end_idx_cand = np.where(np.array([len(c) for c in cliques_idxs]) < self.min_clique_size)[0]
             if len(end_idx_cand):
                 end_idx = end_idx_cand[0]
             else:
