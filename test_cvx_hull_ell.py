@@ -112,30 +112,30 @@ if os.path.exists(name_hyp):
         t_hyp = d['t_hyp']
 else:
     t1 = time.time()
-    cliques_hyp = compute_greedy_clique_partition_convex_hull(ad_mat, pts, smin=10, mode='full')
+    cliques_hyp = compute_greedy_clique_partition_convex_hull(ad_mat, pts, smin=1000, mode='full')
     t2 = time.time()
     t_hyp = t2-t1
     with open(name_hyp, 'wb') as f:
         pickle.dump({'cliques_hyp': cliques_hyp, 't_hyp': t_hyp }, f)
 
 t1 = time.time()
-cliques_hyp_new = [c for c in cliques_hyp]#compute_greedy_clique_partition_convex_hull(ad_mat, pts, smin=10, alpha_max= 0.95*np.pi/2, mode='reduced') #
+cliques_hyp_new = compute_greedy_clique_partition_convex_hull(ad_mat, pts, smin=1000, alpha_max= 0.95*np.pi/2, mode='reduced') #
 t2 = time.time()
 t_hyp_new = t_hyp #t2-t1
 
 
 t1 = time.time()
-cliques_e, emats = compute_greedy_clique_cover_w_ellipsoidal_convex_hull_constraint(ad_mat, pts, smin=10)
+cliques_e, emats = compute_greedy_clique_cover_w_ellipsoidal_convex_hull_constraint(ad_mat, pts, smin=1000)
 t2 = time.time()
 t_e = t2-t1
 t1 = time.time()
-cliques = compute_greedy_clique_partition(ad_mat, smin = 10)
+cliques = compute_greedy_clique_partition(ad_mat, smin = 1000)
 t2 = time.time()
 t_normal = t2-t1
 names = [f"unconstrained {t_normal:.3f}s, {len(pts)} Vertices, {len(cliques)} Cliques, clique 1: {len(cliques[0])}", 
          f"ell constraint {t_e:.3f}s, {len(pts)} Vertices, {len(cliques_e)} Cliques, clique 1: {len(cliques_e[0])} ",
          f"hyp constraint {t_hyp:.3f}s, {len(pts)} Vertices, {len(cliques_hyp)} Cliques, clique 1: {len(cliques_hyp[0])}",
-         f"dummy {t_hyp_new:.3f}s, {len(pts)} Vertices, {len(cliques_hyp_new)} Cliques, clique 1: {len(cliques_hyp_new[0])}",
+         f"hyp cons red {t_hyp_new:.3f}s, {len(pts)} Vertices, {len(cliques_hyp_new)} Cliques, clique 1: {len(cliques_hyp_new[0])}",
          ]
 for ax, c, n in zip(axs, [cliques, cliques_e, cliques_hyp, cliques_hyp_new], names):
     colors = generate_maximally_different_colors(len(c)) #[(0,1,0)] if 'unconstrained' in n else [(0.07999999999999999, 0.8, 0.21090909090909077)] #
