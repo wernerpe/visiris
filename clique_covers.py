@@ -228,7 +228,7 @@ def max_clique_w_cvx_hull_constraint_reduced(adj_mat, graph_vertices, c = None, 
         dists = np.linalg.norm(graph_vertices - graph_vertices[i, :].reshape(1,-1), axis = 1) 
         dists_red = np.delete(dists, i)
         d_lower = np.max([np.min(dists_red), d_min])
-        c_bounds[i] = 1/(np.sqrt(dim)*np.cos(alpha_max)*d_lower)
+        c_bounds[i] = 1/(np.cos(alpha_max)*d_lower)
 
     Mij = np.zeros((n,n))
     for i in range(n):
