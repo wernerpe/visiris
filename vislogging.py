@@ -10,10 +10,12 @@ from shapely.ops import cascaded_union
 from pydrake.all import VPolytope
 import time
 
+logging_dir = "/home/peter/git/visiris" #"/home/audurop/Documents/Research/SuperUROP/visiris"
+
 
 class Logger:
     def __init__(self, world, world_name, config, seed, N, alpha, eps, plt_time = 10):
-        root = "/home/peter/git/visiris"
+        root = logging_dir
         self.world = world
         self.timings = []
         self.name_exp ="experiment_" +world_name+f"_{seed}_{N}_{alpha:.3f}_{eps:.3f}" + config
@@ -122,7 +124,7 @@ class Logger:
 
 class CliqueApproachLogger:
     def __init__(self, world, world_name, config, seed, N, eps, plt_time = 10):
-        root = "/home/peter/git/visiris"
+        root = logging_dir
         self.world = world
         self.timings = []
         self.name_exp ="experiment_" +world_name+f"_{seed}_{N}_{eps:.3f}" + config
@@ -228,7 +230,7 @@ class CliqueApproachLogger:
 
 class Logger3D:
     def __init__(self, world, world_name, seed, N, alpha, eps, estimate_coverage, plt_time = 10):
-        root = "/home/peter/git/visiris"
+        root = logging_dir
         self.world = world
         self.estimate_coverage = estimate_coverage
         self.timings = []
@@ -307,7 +309,7 @@ class Logger3D:
 
 class LoggerClique3D:
     def __init__(self, world, world_name, seed, N, alpha, eps, estimate_coverage, plt_time = 10):
-        root = "/home/peter/git/visiris"
+        root = logging_dir
         self.world = world
         self.estimate_coverage = estimate_coverage
         self.timings = []

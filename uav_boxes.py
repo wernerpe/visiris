@@ -502,7 +502,7 @@ class Village(EnvironmentVisualizer):
         robot_instances =[plant.GetModelInstanceByName("dronevillage")]
         checker = SceneGraphCollisionChecker(model = diagram, 
                     robot_model_instances = robot_instances,
-                    distance_function_weights =  [1] * plant.num_positions(),
+                    # distance_function_weights =  [1] * plant.num_positions(),
                     #configuration_distance_function = _configuration_distance,
                     edge_step_size = 0.1)
         vgraph_handle = partial(vgraph, checker = checker, parallelize = True) 
