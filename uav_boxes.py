@@ -1,7 +1,7 @@
 import numpy as np
 
 from meshcat import Visualizer
-from meshcat.geometry import Box, Sphere, Cylinder, MeshLambertMaterial, TriangularMeshGeometry
+from meshcat.geometry import Box, Sphere, Cylinder, MeshLambertMaterial, TriangularMeshGeometry, LineSegments, LineBasicMaterial, PointsGeometry
 from meshcat.transformations import translation_matrix, rotation_matrix
 from matplotlib.colors import to_hex as _to_hex
 from pydrake.all import HPolyhedron
@@ -335,6 +335,17 @@ class Village(EnvironmentVisualizer):
                 #                   c, wireframe = wireframe, resolution = 30, opacity = opacity)
                 self.plot_hpoly3d_2(name, region,
                                    c, wireframe = wireframe,opacity = opacity)
+
+    def plot_lines(self, name, start, end):
+        obj = self[name]
+        red = np.array([[1,0,0], [1,0,0]])
+        segments = start.shape[1]
+        obj.set_object(LineSegments(
+            PointsGeometry(position=np.hstack([start, end]).reshape(segments*2, 3).astype(np.float32).T,
+            color=np.repeat(red, segments, 0).astype(np.float32).T
+        ),
+        LineBasicMaterial(vertexColors=True, linewidth=20)))
+        obj.set_property("Visible", True)
 
     def plot_hpoly3d_2(self, name, region, color, wireframe, opacity):
         region = HPolyhedron(region.A(), region.b())
